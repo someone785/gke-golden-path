@@ -9,7 +9,7 @@
 
 ## 中断した地点 (2026-11-08)
 - 終わったこと: GCP プロジェクトの作成 (README の手順 1)。雛形・ADR・bootstrap のコード
-- 作業環境を Fedora から WSL (Ubuntu) に移した。コミットのメールアドレスを直すため、Git の履歴は捨てて `git init` からやり直した (古いコミット ID は無効)
+- 作業環境を Fedora から WSL (Ubuntu) に移した。コミットのメールアドレスを直すため、Git の履歴は捨てて `git init` からやり直した (古いコミット ID は無効)。移行後の確認 (`mise install --locked`、`pre-commit run --all-files`、gcloud の 2 つのログイン) は済んだ
 - 次にやること: bootstrap の plan (README の手順 2)。apply はまだしない
   ```bash
   cd terraform/bootstrap
@@ -52,6 +52,7 @@
 - 東京と他のリージョンの料金の差。Spot の在庫
 - GKE の管理手数料の無料枠 (ゾーン型のクラスタ 1 つ分か)
 - ゾーンをまたぐ通信の料金
+- Claude の sandbox で、存在しない dotfile (`.bashrc` など) が `git status` に未追跡として出る現象 (Fedora の bubblewrap で発生) が、WSL でも起きるか。出たら無視し、`git add` しない
 - OTel Demo を動かすのに必要なメモリ・CPU と、それに合うノードのサイズと台数
 - Renovate が Terraform の `helm_release` の版の更新に対応しているか
 - Renovate が `mise.lock` と、SHA で固定した `rev:` / `uses:` の更新に対応しているか
@@ -69,6 +70,9 @@
 - 【mise.toml に `[settings] locked = true` を書かない】グローバルの設定のツール (node、starship) まで lock を要求されて失敗する。厳格な検査は CI の `mise install --locked` で行う。
 - 【mise の公式ドキュメントは、手元の mise 2026.10.8 より新しい】`locked_require_checksum` は「不明な設定」と警告された。ドキュメントの設定を使う前に、手元の版で使えるか確かめる。
 - 【pre-commit の上流の gitleaks フックは、初回に Go ごとソースからビルドするので遅い】→ repo: local で手元の gitleaks を呼ぶ。版は `mise.toml` で固定する。
+- 【作業は WSL2 (Ubuntu) の中で行う。ネイティブの Windows では作業しない】`mise.lock` に pre-commit の `windows-x64` のチェックサムがなく、pre-commit-terraform のフックと CLAUDE.md の手順も bash が前提。
+- 【リポジトリは WSL の中 (`~/projects/...`) に置く。`/mnt/c/...` に置かない】Windows のファイルシステム越しは遅く、改行コード (CRLF) と実行権限で問題が出やすい。
+- 【改行コード】WSL の git は `core.autocrlf=input`。`.gitattributes` はまだない。Windows 側のエディタで開くなら `* text=auto eol=lf` を足すことを検討する。
 
 ## 後でやる
 (今のフェーズで不要なものは、ここに書いて止める)
