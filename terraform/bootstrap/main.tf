@@ -90,9 +90,10 @@ resource "google_billing_budget" "monthly" {
 
   # 通知は、請求先アカウントの管理者と閲覧者へのメール (既定の動作) を使う。
   # 通知チャネル (Cloud Monitoring) を作らずに済むため。
-  all_updates_rule {
-    disable_default_iam_recipients = false
-  }
+  # 【all_updates_rule は書かない】provider v8.10 では、このブロックを書くと
+  # monitoring_notification_channels か pubsub_topic のどちらかが必須になり、plan が失敗する。
+  # 省略しても既定のメールは止まらない (止めるのは disable_default_iam_recipients = true だけ)。
+  # 2026-11-08 の apply 後に、Console の予算の画面で管理者へのメールが有効なことを確認した。
 
   depends_on = [google_project_service.this]
 }
