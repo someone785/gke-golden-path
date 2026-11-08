@@ -42,17 +42,28 @@
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
 
 ## 未確認のこと (確認したら、ここを更新する)
-- 東京と他のリージョンの料金の差。Spot の在庫
-- GKE の管理手数料の無料枠 (ゾーン型のクラスタ 1 つ分か)
+- 東京と他のリージョンの料金の差。Spot の在庫と回収の頻度
+- ノードのブートディスク (GKE の既定は 100 GB と記憶しているが未確認)、LoadBalancer、通信の料金
+- Cloud Billing API (価格表) の利用料金 (ドキュメントに記載なし)
 - ゾーンをまたぐ通信の料金
 - Claude の sandbox で、存在しない dotfile (`.bashrc` など) が `git status` に未追跡として出る現象 (Fedora の bubblewrap で発生) が、WSL でも起きるか。出たら無視し、`git add` しない
-- OTel Demo を動かすのに必要なメモリ・CPU と、それに合うノードのサイズと台数
+- OTel Demo を動かすのに実際に使うメモリ・CPU (limits の合計は約 8 GiB。下の「実測の記録」)。`agent`・`chatbot`・`mcp` に LLM の API キーが要るか
 - Renovate が Terraform の `helm_release` の版の更新に対応しているか
 - Renovate が `mise.lock` と、SHA で固定した `rev:` / `uses:` の更新に対応しているか
 
 ## 実測の記録
 - 2026-11-08: trivy v0.69.3 のリリースを GitHub API で確認した。公開日は 2026-03-03 (攻撃の 3 月 19 日より前)、`immutable: true`。`mise.lock` の linux-x64 のチェックサムは、公式の `trivy_0.69.3_checksums.txt` と一致した。mise は lock のときに cosign で来歴を検証している (`provenance = "cosign"`)。
 - 2026-11-08: 予算アラートの `all_updates_rule` を省略しても、Console の予算の画面で「請求先アカウントの管理者とユーザーにメールでアラートを送信」が有効になっていることを確認した。
+- 2026-11-08: GKE の料金のページで確認。管理手数料は $0.10 / クラスタ / 時間。無料枠は請求先アカウントごとに月 $74.40 (ゾーン型の Standard か Autopilot のクラスタ 1 つ分)。繰り越しなし。ノードの Compute Engine の料金には使えない。
+- 2026-11-08: Cloud Billing Catalog API で、東京 (asia-northeast1) の E2 の単価 (円、税抜きかは未確認) を取得した。Spot の割引は約 40% (料金のページの「60〜91%」より小さい)。API は調べたあとに無効に戻す。
+
+  | | vCPU / 時間 | メモリ GiB / 時間 | e2-standard-2 / 時間 | e2-standard-4 / 時間 | e2-standard-4 / 730 時間 |
+  |---|---|---|---|---|---|
+  | Spot | 2.661 円 | 0.355 円 | 8.16 円 | 16.32 円 | 約 11,900 円 |
+  | 通常 | 4.434 円 | 0.592 円 | 13.60 円 | 27.20 円 | 約 19,900 円 |
+
+  【予算 5,000 円 / 月では、e2-standard-4 の Spot 1 台でも常時は動かせない】使うときだけ apply し、終わったら destroy する (例: 80 時間で約 1,300 円 + ディスクなど)。
+- 2026-11-08: OTel Demo (chart 0.42.6 / アプリ 3.1.0) の `values.yaml` のメモリの limits の合計は、デモのサービス約 6.1 GiB + 監視の部品約 2.0 GiB = 約 8 GiB。
 (初日の請求額、Spot の回収の状況などを、ここに書く)
 
 ## bootstrap の state を失ったら
