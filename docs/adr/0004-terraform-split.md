@@ -21,8 +21,8 @@
 
 | 順 | ディレクトリ | 作るもの | state の置き場所 | 頻度 |
 |---|---|---|---|---|
-| 1 | `terraform/bootstrap/` | state 用のバケット、予算アラート | ローカル (gitignore する) | 最初の 1 回だけ。destroy しない |
-| 2 | `terraform/` | VPC、GKE、Artifact Registry、Workload Identity Federation | GCS | 作り直すたび |
+| 1 | `terraform/bootstrap/` | state 用のバケット、予算アラート、Workload Identity Federation (2026-11-08 に追加) | ローカル (gitignore する) | 最初の 1 回だけ。destroy しない |
+| 2 | `terraform/` | VPC、GKE、Artifact Registry | GCS | 作り直すたび |
 | 3 | `terraform/platform/` | ArgoCD、最初の Application | GCS | 作り直すたび (2 の後) |
 
 ## 結果
@@ -37,3 +37,23 @@
 - 【bootstrap の state はローカルにある】
   これを失うと、バケットと予算アラートを Terraform で管理できなくなる (import すれば戻せる)。
   消さないように注意する。
+
+## 追記 (2026-11-08): Workload Identity Federation を本体から bootstrap に移す
+### 背景
+- 最初は WIF (GitHub Actions 用の pool と provider) を本体に置いていた。
+- 本体を一度 apply → destroy したところで、**削除した pool と provider は 30 日間復元でき、その間は同じ ID で作り直せない**ことが分かった
+  ([公式のドキュメント](https://docs.cloud.google.com/iam/docs/manage-workload-identity-pools-providers))。
+  本体に置いたままだと、destroy した後 30 日以内の apply が失敗する。
+
+### 選択肢
+1. **WIF を bootstrap に移す** (destroy しない側に置く)
+2. pool の ID に、apply ごとに変わる接尾辞を付ける (provider の名前が毎回変わり、GitHub Actions の設定も毎回直すことになる)
+
+### 決定
+1 にする。削除された pool と provider は `undelete` で復元し、bootstrap に import した。
+
+### 結果
+- クラスタを消している間も、CI の `terraform plan` が認証できる (CI の plan は、クラスタがない時間のほうが長い)。
+- WIF 用の API (iam、iamcredentials、sts) と、GitHub のリポジトリに付ける IAM のロールも bootstrap に移した。
+- bootstrap の state を失ったときに import するリソースは 11 個になった (`terraform/bootstrap/import.tf.example`)。
+- 【Artifact Registry も、destroy するとイメージが消える】同じ名前ですぐ作り直せるかは未確認。使うのはフェーズ 3 なので、そのときに置き場所を決める。

@@ -29,8 +29,47 @@ import {
   id = "${var.project_id}/billingbudgets.googleapis.com"
 }
 
+import {
+  to = google_project_service.this["iam.googleapis.com"]
+  id = "${var.project_id}/iam.googleapis.com"
+}
+
+import {
+  to = google_project_service.this["iamcredentials.googleapis.com"]
+  id = "${var.project_id}/iamcredentials.googleapis.com"
+}
+
+import {
+  to = google_project_service.this["sts.googleapis.com"]
+  id = "${var.project_id}/sts.googleapis.com"
+}
+
 # import 後の state の force_destroy は false になる (provider のドキュメント)。main.tf も false なので差分は出ない。
 import {
   to = google_storage_bucket.tfstate
   id = "${var.project_id}/${var.project_id}-tfstate"
+}
+
+# ---------------------------------------------------------------
+# Workload Identity Federation (wif.tf)
+# ---------------------------------------------------------------
+import {
+  to = google_iam_workload_identity_pool.github
+  id = "projects/${var.project_id}/locations/global/workloadIdentityPools/github"
+}
+
+import {
+  to = google_iam_workload_identity_pool_provider.github
+  id = "projects/${var.project_id}/locations/global/workloadIdentityPools/github/providers/github"
+}
+
+# IAM の付与の ID は、空白区切りで「対象 ロール メンバー」
+import {
+  to = google_project_iam_member.github_plan
+  id = "${var.project_id} roles/viewer ${local.github_principal}"
+}
+
+import {
+  to = google_storage_bucket_iam_member.github_tfstate
+  id = "b/${var.project_id}-tfstate roles/storage.objectUser ${local.github_principal}"
 }

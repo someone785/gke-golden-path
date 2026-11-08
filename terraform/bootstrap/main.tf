@@ -7,6 +7,10 @@ resource "google_project_service" "this" {
   for_each = toset([
     "storage.googleapis.com",
     "billingbudgets.googleapis.com",
+    # Workload Identity Federation (wif.tf) に使う
+    "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "sts.googleapis.com",
   ])
 
   service = each.key

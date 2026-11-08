@@ -19,3 +19,9 @@ variable "budget_amount" {
   type        = number
   default     = 5000
 }
+
+variable "github_repository" {
+  description = "Workload Identity Federation で認証を許可する GitHub のリポジトリ (owner/name)"
+  type        = string
+  default     = "someone785/gke-golden-path"
+}
