@@ -1,0 +1,38 @@
+# コミット時に走る検査。CI でも同じものを全ディレクトリに実行する。
+# rev はタグではなくコミット SHA で固定する (ADR 0005)。`# frozen:` のコメントが元のタグ。
+# 版の更新は、当面は `pre-commit autoupdate --freeze`、フェーズ 3 以降は Renovate に任せる。
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: 4c4437d784e93cacb1f05f1d7bc28e4354fafd20  # frozen: v1.109.4
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_tflint
+        args:
+          # 各ディレクトリから、リポジトリ直下の設定を使う
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+      - id: terraform_trivy
+        args:
+          # 除外は、リソース宣言の直前に `# trivy:ignore:ID 理由` で書く
+          - --args=--severity=HIGH,CRITICAL
+
+  # gitleaks は手元の実行ファイル (mise.toml で版を固定) を使う。
+  # 【上流の gitleaks フックは language: golang で、初回に Go ごとソースからビルドするため遅い】
+  # 【上流の gitleaks-system フックの rev は定義の版であり、本体の版ではない】→ 誤解を避けて local にした。
+  # --staged なので、ステージ済みの差分だけを検査する。リポジトリ全体の検査は CI で行う。
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks git --pre-commit --redact --staged --verbose
+        language: system
+        pass_filenames: false

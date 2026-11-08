@@ -1,0 +1,22 @@
+# このリポジトリで使うツールの版を固定する。手元と CI で同じ版を使うため。
+# 使い方: `mise install` (このディレクトリでは、ここに書いた版が優先される)
+# 版の更新は、フェーズ 3 以降 Renovate に任せる。
+#
+# 【タグは後から付け替えられる】そのため、版の番号ではなく、mise.lock のチェックサムでバイナリそのものを固定する (ADR 0005)。
+#   初回・更新時: `mise lock` (更新は `mise lock --bump <tool>`) → mise.lock の差分を確認してコミット
+#   インストール: `mise install` (mise.lock にある版とチェックサムで入る)。CI では `mise install --locked` で、lock にないものをエラーにする
+# 【lock した時点のバイナリが固定される】安全と分かっている版で lock すること。
+#
+# 【ここに [settings] locked = true を書かない】
+#   locked はグローバルの設定 (~/.config/mise/config.toml) のツールにも効くため、
+#   手元の node や starship が「lock にない」というエラーになる。厳格な検査は CI の --locked で行う。
+# 【locked_require_checksum は、mise 2026.10.8 では「不明な設定」と警告される】(公式ドキュメントは、より新しい版の内容)
+
+[tools]
+terraform = "1.16.2"
+tflint = "0.64.0"
+trivy = "0.69.3"
+# pre-commit のフックは repo: local で、この gitleaks を直接呼ぶ (.pre-commit-config.yaml)
+gitleaks = "8.30.0"
+pre-commit = "4.7.0"
+# kubectl / helm は、GKE の版が決まってから足す (kubectl はクラスタの版と ±1 マイナー以内にするため)

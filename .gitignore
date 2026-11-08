@@ -1,0 +1,34 @@
+# --- 秘密 (コミットしない) ---
+*.tfvars
+!*.tfvars.example
+backend.hcl
+*.tfstate
+*.tfstate.*
+kubeconfig*
+*.pem
+*.key
+.env
+
+# --- Terraform の作業ファイル ---
+# .terraform.lock.hcl は再現性のためコミットする
+.terraform/
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- ユーザー端末での実行結果 (Claude が読むための一時ファイル) ---
+out.txt
+*.plan.txt
+
+# --- mise の個人用の上書き (コミットしない) ---
+mise.local.toml
+mise.local.lock
+
+# --- エディタ・OS ---
+.idea/
+.vscode/
+.DS_Store
