@@ -10,11 +10,14 @@
 ## 中断した地点 (2026-11-08)
 - 終わったこと: GCP プロジェクトの作成 (README の手順 1)。雛形・ADR・bootstrap のコード
 - 作業環境を Fedora から WSL (Ubuntu) に移した。コミットのメールアドレスを直すため、Git の履歴は捨てて `git init` からやり直した (古いコミット ID は無効)。移行後の確認 (`mise install --locked`、`pre-commit run --all-files`、gcloud の 2 つのログイン) は済んだ
-- bootstrap の plan と apply が済んだ (2026-11-08)。state 用のバケット `<project_id>-tfstate` と予算アラートができた
-  - 【`terraform/bootstrap/terraform.tfstate` はこの PC にしかない】バックアップはとらず、失ったら import で戻す (2026-11-08 に決定)。手順は「bootstrap の state を失ったら」。state を退避して plan で試し、`4 to import` を確認した (2026-11-08)
+- bootstrap の plan と apply が済んだ (2026-11-08)。state 用のバケット `<project_id>-tfstate` と予算アラートができた。WIF も bootstrap に移した (下記)
+  - 【`terraform/bootstrap/terraform.tfstate` はこの PC にしかない】バックアップはとらず、失ったら import で戻す (2026-11-08 に決定)。手順は「bootstrap の state を失ったら」。state を退避して plan で試し、`4 to import` を確認した (2026-11-08。その後 WIF を足したので、今は 11 個。11 個での試行は未実施)
 - GitHub の `someone785/gke-golden-path` (private) に push した (2026-11-08)
-- 次にやること: `terraform/` 本体 (VPC、GKE、Artifact Registry、WIF) のコードを書く
-- ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
+- `terraform/` 本体を書き、apply → `kubectl get nodes` (Ready、kube-system の Pod が Running) → destroy まで通した (2026-11-08、約 30 分)
+- destroy の後、【削除した WIF の pool と provider は 30 日間同じ ID で作り直せない】ことが分かり、WIF を bootstrap に移した (ADR 0004 の追記)。pool と provider は undelete して bootstrap に import した
+- 本体の `remove_default_node_pool` (非推奨) をやめ、既定のノードプールなしで作る書き方にした (クラスタの版が条件を満たしたため)。【この書き方での apply は未実施】
+- 次にやること: `terraform/platform/` (ArgoCD と最初の Application)。コードはクラスタがない間に書き、apply は OTel Demo の画面を開くところまでまとめて行う
+- ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -24,8 +27,8 @@
 ## 次にやること
 - [x] GCP プロジェクトの作成、請求先アカウントのリンク、ADC の設定、最小限の API の有効化 (2026-11-08、ユーザーの端末で実行)
 - [x] リポジトリの雛形: `README.md`、`.gitignore`、`.pre-commit-config.yaml`、`mise.toml` / `mise.lock` (2026-11-08)
-- [x] `terraform/bootstrap/`: state 用のバケット、予算アラート (`EXCLUDE_ALL_CREDITS`) (2026-11-08 に apply)
-- [ ] `terraform/`: VPC、GKE (ゾーン型、Spot ノードプール)、Artifact Registry、Workload Identity Federation
+- [x] `terraform/bootstrap/`: state 用のバケット、予算アラート (`EXCLUDE_ALL_CREDITS`)、Workload Identity Federation (2026-11-08 に apply)
+- [x] `terraform/`: VPC、GKE (ゾーン型、Spot ノードプール)、Artifact Registry (2026-11-08 に apply → destroy で確認)
 - [ ] `terraform/platform/`: ArgoCD と、最初の Application
 - [ ] `gitops/apps/`: OTel Demo の Application
 - [ ] `.github/workflows/`: 検査 (fmt、tflint、trivy、gitleaks) と `terraform plan` (OIDC で鍵なし)
@@ -64,10 +67,12 @@
 
   【予算 5,000 円 / 月では、e2-standard-4 の Spot 1 台でも常時は動かせない】使うときだけ apply し、終わったら destroy する (例: 80 時間で約 1,300 円 + ディスクなど)。
 - 2026-11-08: OTel Demo (chart 0.42.6 / アプリ 3.1.0) の `values.yaml` のメモリの limits の合計は、デモのサービス約 6.1 GiB + 監視の部品約 2.0 GiB = 約 8 GiB。
+- 2026-11-08: 本体の apply は、クラスタの作成が 8 分 34 秒、ノードプールが 53 秒。API の有効化に約 1 分。destroy は数分。
+- 2026-11-08: REGULAR チャンネルで作られたクラスタの版は 1.36.4-gke.2046003 (コントロールプレーン、ノードとも)。kubectl は 1.36.6 を `mise.lock` で固定した (公式の sha256 と一致を確認)。
 (初日の請求額、Spot の回収の状況などを、ここに書く)
 
 ## bootstrap の state を失ったら
-バックアップはとらない。リソースは 4 つだけで、`import` ブロックで戻せるため (bootstrap は最初の 1 回だけ apply し、destroy しない。ADR 0004)。
+バックアップはとらない。リソースは 11 個だけで、`import` ブロックで戻せるため (bootstrap は最初の 1 回だけ apply し、destroy しない。ADR 0004)。
 `terraform.tfvars` も失っていたら、`terraform.tfvars.example` から作り直す。
 
 ```bash
@@ -78,7 +83,7 @@ cp import.tf.example import.tf
 terraform plan -var budget_id=<予算アラートの ID> -out=import.tfplan 2>&1 | tee ../../out.txt
 terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstrap.plan.txt
 ```
-期待する結果は `Plan: 4 to import, 0 to add, 0 to change, 0 to destroy`。`add` や `change` があれば apply しない。
+期待する結果は `Plan: 11 to import, 0 to add, 0 to change, 0 to destroy`。`add` や `change` があれば apply しない。
 問題がなければ `terraform apply import.tfplan` → `rm import.tf import.tfplan` → `terraform plan` で `No changes` を確かめる。
 
 ## 落とし穴
@@ -93,6 +98,10 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【作業は WSL2 (Ubuntu) の中で行う。ネイティブの Windows では作業しない】`mise.lock` に pre-commit の `windows-x64` のチェックサムがなく、pre-commit-terraform のフックと CLAUDE.md の手順も bash が前提。
 - 【リポジトリは WSL の中 (`~/projects/...`) に置く。`/mnt/c/...` に置かない】Windows のファイルシステム越しは遅く、改行コード (CRLF) と実行権限で問題が出やすい。
 - 【改行コード】WSL の git は `core.autocrlf=input`。`.gitattributes` はまだない。Windows 側のエディタで開くなら `* text=auto eol=lf` を足すことを検討する。
+- 【削除した Workload Identity Pool / Provider は 30 日間、同じ ID で作り直せない】destroy する側 (本体) に置かない → ADR 0004 の追記
+- 【GKE の `deletion_protection` は provider の既定が true】false にしないと destroy できない
+- 【`... | tee out.txt` は上書きする】結果を残したいコマンドの後に別のコマンドを tee すると、前の結果が消える。続けて記録するときは `tee -a`
 
 ## 後でやる
 (今のフェーズで不要なものは、ここに書いて止める)
+- フェーズ 3: Artifact Registry の置き場所を決める。本体にあると destroy のたびにイメージが消え、同じ名前ですぐ作り直せるかも未確認 (ADR 0004 の追記)
