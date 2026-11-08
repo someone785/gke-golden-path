@@ -19,4 +19,7 @@ trivy = "0.69.3"
 # pre-commit のフックは repo: local で、この gitleaks を直接呼ぶ (.pre-commit-config.yaml)
 gitleaks = "8.30.0"
 pre-commit = "4.7.0"
-# kubectl / helm は、GKE の版が決まってから足す (kubectl はクラスタの版と ±1 マイナー以内にするため)
+# 【kubectl はクラスタの版と ±1 マイナー以内にする】2026-11-08 に作ったクラスタは 1.36.4-gke.2046003 (REGULAR チャンネル)。
+# クラスタが自動で上がったら、ここも合わせて上げる
+kubectl = "1.36.6"
+# helm は、platform (ArgoCD) の作業で必要になったら足す
