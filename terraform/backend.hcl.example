@@ -1,0 +1,3 @@
+# backend.hcl にコピーして値を入れる (backend.hcl は gitignore 済み)。
+# バケット名は bootstrap の出力 state_bucket (terraform -chdir=bootstrap output -raw state_bucket)。
+bucket = "gke-golden-path-xxxx-tfstate"
