@@ -15,8 +15,22 @@
 - GitHub の `someone785/gke-golden-path` (private) に push した (2026-11-08)
 - `terraform/` 本体を書き、apply → `kubectl get nodes` (Ready、kube-system の Pod が Running) → destroy まで通した (2026-11-08、約 30 分)
 - destroy の後、【削除した WIF の pool と provider は 30 日間同じ ID で作り直せない】ことが分かり、WIF を bootstrap に移した (ADR 0004 の追記)。pool と provider は undelete して bootstrap に import した
-- 本体の `remove_default_node_pool` (非推奨) をやめ、既定のノードプールなしで作る書き方にした (クラスタの版が条件を満たしたため)。【この書き方での apply は未実施】
-- 次にやること: `terraform/platform/` (ArgoCD と最初の Application)。コードはクラスタがない間に書き、apply は OTel Demo の画面を開くところまでまとめて行う
+- 本体の `remove_default_node_pool` (非推奨) をやめ、既定のノードプールなしで作る書き方にした (クラスタの版が条件を満たしたため)。2 回目の apply で動くことを確認した
+- `terraform/platform/` (ArgoCD、ルートの Application) と `gitops/apps/otel-demo.yaml` を書いた (2026-11-08、コミット済み)
+- 2026-11-08 19 時台に通しで試したが、platform の apply で ArgoCD の chart の取得が失敗した (GitHub の障害「Increase in timeouts for some unauthenticated users」で HTTP 503)。本体を destroy し、リポジトリを private に戻した。platform の state には data source しかない (作られたものはない)
+- 次にやること: 通しの再挑戦。【先にリポジトリを public にする】ArgoCD は認証なしで GitHub を読むため。[GitHub Status](https://www.githubstatus.com/) で障害がないことを確かめてから始める
+  ```bash
+  gh repo edit someone785/gke-golden-path --visibility public --accept-visibility-change-consequences
+  cd terraform && set -o pipefail
+  terraform plan -out=main.tfplan 2>&1 | tee ../out.txt          # Plan: 13 to add
+  terraform apply main.tfplan 2>&1 | tee ../out.txt && rm main.tfplan
+  cd platform
+  terraform plan -out=platform.tfplan 2>&1 | tee ../../out.txt   # Plan: 2 to add
+  terraform apply platform.tfplan 2>&1 | tee ../../out.txt && rm platform.tfplan
+  kubectl get applications -n argocd
+  kubectl -n otel-demo port-forward svc/frontend-proxy 8080:8080   # http://localhost:8080 (録画する)
+  ```
+  消すときは platform → 本体の順に `plan -destroy -out=...` → `apply`
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
 ## 期限 (重要)
@@ -43,6 +57,7 @@
 | 2026-11-08 | ArgoCD は Terraform (`helm_release`) で入れて、ArgoCD 自身は Terraform が管理し続ける | [0003](adr/0003-argocd-bootstrap-by-terraform.md) |
 | 2026-11-08 | Terraform を bootstrap・本体・platform の 3 つに分ける | [0004](adr/0004-terraform-split.md) |
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
+| 2026-11-08 | リポジトリは public にする (ArgoCD が認証なしで読むため。公開の前に gitleaks で全履歴を検査した) | — |
 
 ## 未確認のこと (確認したら、ここを更新する)
 - 東京と他のリージョンの料金の差。Spot の在庫と回収の頻度
@@ -101,6 +116,10 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【削除した Workload Identity Pool / Provider は 30 日間、同じ ID で作り直せない】destroy する側 (本体) に置かない → ADR 0004 の追記
 - 【GKE の `deletion_protection` は provider の既定が true】false にしないと destroy できない
 - 【`... | tee out.txt` は上書きする】結果を残したいコマンドの後に別のコマンドを tee すると、前の結果が消える。続けて記録するときは `tee -a`
+- 【`terraform apply X | tee out.txt && rm X` は、apply が失敗しても rm が走る】パイプの終了ステータスは最後の tee のもの。先に `set -o pipefail` を実行する
+- 【terraform を中断すると、GCS の state のロックが残ることがある】2026-11-08 に、中断した plan の provider のプロセスだけが残り、ロックが外れなかった。`ps` で terraform が動いていないことを確かめてから、`kill <provider の PID>` → `terraform force-unlock <ID>`
+- 【フェーズ 1 の流れは GitHub に依存する】ArgoCD の chart (github.com の releases)、ArgoCD が読むリポジトリ、OTel Demo のイメージ (ghcr.io) は、すべて認証なしで GitHub から取得する。GitHub の障害中は動かない
+- 【ArgoCD はリポジトリを認証なしで読む】リポジトリは public にしておく (2026-11-08 に決定。private のままにする場合は deploy key などが要る)
 
 ## 後でやる
 (今のフェーズで不要なものは、ここに書いて止める)
