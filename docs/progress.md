@@ -10,18 +10,10 @@
 ## 中断した地点 (2026-11-08)
 - 終わったこと: GCP プロジェクトの作成 (README の手順 1)。雛形・ADR・bootstrap のコード
 - 作業環境を Fedora から WSL (Ubuntu) に移した。コミットのメールアドレスを直すため、Git の履歴は捨てて `git init` からやり直した (古いコミット ID は無効)。移行後の確認 (`mise install --locked`、`pre-commit run --all-files`、gcloud の 2 つのログイン) は済んだ
-- 次にやること: bootstrap の plan (README の手順 2)。apply はまだしない
-  ```bash
-  cd terraform/bootstrap
-  cp terraform.tfvars.example terraform.tfvars   # project_id と billing_account を入れる
-  terraform init 2>&1 | tee ../../out.txt
-  terraform plan -out=bootstrap.tfplan 2>&1 | tee -a ../../out.txt
-  terraform show -no-color bootstrap.tfplan | grep -E '^  # |^Plan:' > ../../bootstrap.plan.txt
-  ```
-  期待する結果は `Plan: 4 to add` (API 2 つ、バケット、予算アラート)。`replace` / `destroy` がないことを確認する。
-  `out.txt` には請求先アカウントの ID が出る可能性がある (gitignore 済み)。
+- bootstrap の plan と apply が済んだ (2026-11-08)。state 用のバケット `<project_id>-tfstate` と予算アラートができた
+  - 【`terraform/bootstrap/terraform.tfstate` はこの PC にしかない】バックアップの方法は未決定
+- 次にやること: `terraform/` 本体 (VPC、GKE、Artifact Registry、WIF) のコードを書く
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
-- その次: bootstrap の apply → `terraform/` 本体 (VPC、GKE、Artifact Registry、WIF) の作成
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -31,7 +23,7 @@
 ## 次にやること
 - [x] GCP プロジェクトの作成、請求先アカウントのリンク、ADC の設定、最小限の API の有効化 (2026-11-08、ユーザーの端末で実行)
 - [x] リポジトリの雛形: `README.md`、`.gitignore`、`.pre-commit-config.yaml`、`mise.toml` / `mise.lock` (2026-11-08)
-- [ ] `terraform/bootstrap/`: state 用のバケット、予算アラート (`EXCLUDE_ALL_CREDITS`) — コードは作成済み。plan と apply が未実施
+- [x] `terraform/bootstrap/`: state 用のバケット、予算アラート (`EXCLUDE_ALL_CREDITS`) (2026-11-08 に apply)
 - [ ] `terraform/`: VPC、GKE (ゾーン型、Spot ノードプール)、Artifact Registry、Workload Identity Federation
 - [ ] `terraform/platform/`: ArgoCD と、最初の Application
 - [ ] `gitops/apps/`: OTel Demo の Application
@@ -59,6 +51,7 @@
 
 ## 実測の記録
 - 2026-11-08: trivy v0.69.3 のリリースを GitHub API で確認した。公開日は 2026-03-03 (攻撃の 3 月 19 日より前)、`immutable: true`。`mise.lock` の linux-x64 のチェックサムは、公式の `trivy_0.69.3_checksums.txt` と一致した。mise は lock のときに cosign で来歴を検証している (`provenance = "cosign"`)。
+- 2026-11-08: 予算アラートの `all_updates_rule` を省略しても、Console の予算の画面で「請求先アカウントの管理者とユーザーにメールでアラートを送信」が有効になっていることを確認した。
 (初日の請求額、Spot の回収の状況などを、ここに書く)
 
 ## 落とし穴
