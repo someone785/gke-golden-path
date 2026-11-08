@@ -1,0 +1,4 @@
+# terraform.tfvars にコピーして値を入れる (terraform.tfvars は gitignore 済み)
+project_id      = "gke-golden-path-xxxx"
+billing_account = "XXXXXX-XXXXXX-XXXXXX"
+budget_amount   = 5000
