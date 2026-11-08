@@ -1,0 +1,26 @@
+# OpenTelemetry Demo (Astronomy Shop)。他者が作ったものなので Helm で入れる (CLAUDE.md)。
+# 監視の部品 (OTel Collector、Prometheus、Grafana、Jaeger、OpenSearch) は chart に同梱のものを使う。
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-demo
+  namespace: argocd
+  # 【finalizers を付けない】terraform/platform/argocd.tf のルートと同じ理由
+spec:
+  project: default
+  source:
+    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-demo
+    targetRevision: 0.42.6 # アプリ 3.1.0、2026-10-21 公開
+    helm:
+      # まずは既定の values のまま動かし、使うメモリを測ってから調整する (docs/progress.md)
+      valuesObject: {}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: otel-demo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

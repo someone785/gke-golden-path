@@ -1,0 +1,2 @@
+# terraform.tfvars にコピーして値を入れる (terraform.tfvars は gitignore 済み)
+project_id = "gke-golden-path-xxxx"
