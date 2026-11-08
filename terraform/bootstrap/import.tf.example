@@ -1,0 +1,36 @@
+# bootstrap の terraform.tfstate を失ったときに、既存のリソースを state に戻すためのひな形。
+# 手順は docs/progress.md の「bootstrap の state を失ったら」を参照。
+#
+# 【state を失ったまま plan / apply しない】import せずに apply すると、
+# バケットは名前の重複で作成に失敗し、予算アラートは同じ名前で 2 つめが作られる。
+#
+# 使い方: import.tf にコピーし、予算アラートの ID を -var で渡して plan → apply。終わったら import.tf を消す。
+# import.tf は .gitignore 済み (使い終わったら不要なため)。
+
+# 予算アラートの ID だけは、名前から決まらないので外から渡す。
+# 調べ方: gcloud billing budgets list --billing-account=<請求先アカウントの ID>
+variable "budget_id" {
+  description = "予算アラートの ID (billingAccounts/.../budgets/ の後ろの部分)"
+  type        = string
+}
+
+import {
+  to = google_billing_budget.monthly
+  id = "billingAccounts/${var.billing_account}/budgets/${var.budget_id}"
+}
+
+import {
+  to = google_project_service.this["storage.googleapis.com"]
+  id = "${var.project_id}/storage.googleapis.com"
+}
+
+import {
+  to = google_project_service.this["billingbudgets.googleapis.com"]
+  id = "${var.project_id}/billingbudgets.googleapis.com"
+}
+
+# import 後の state の force_destroy は false になる (provider のドキュメント)。main.tf も false なので差分は出ない。
+import {
+  to = google_storage_bucket.tfstate
+  id = "${var.project_id}/${var.project_id}-tfstate"
+}

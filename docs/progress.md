@@ -11,7 +11,8 @@
 - 終わったこと: GCP プロジェクトの作成 (README の手順 1)。雛形・ADR・bootstrap のコード
 - 作業環境を Fedora から WSL (Ubuntu) に移した。コミットのメールアドレスを直すため、Git の履歴は捨てて `git init` からやり直した (古いコミット ID は無効)。移行後の確認 (`mise install --locked`、`pre-commit run --all-files`、gcloud の 2 つのログイン) は済んだ
 - bootstrap の plan と apply が済んだ (2026-11-08)。state 用のバケット `<project_id>-tfstate` と予算アラートができた
-  - 【`terraform/bootstrap/terraform.tfstate` はこの PC にしかない】バックアップの方法は未決定
+  - 【`terraform/bootstrap/terraform.tfstate` はこの PC にしかない】バックアップはとらず、失ったら import で戻す (2026-11-08 に決定)。手順は「bootstrap の state を失ったら」。state を退避して plan で試し、`4 to import` を確認した (2026-11-08)
+- GitHub の `someone785/gke-golden-path` (private) に push した (2026-11-08)
 - 次にやること: `terraform/` 本体 (VPC、GKE、Artifact Registry、WIF) のコードを書く
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
@@ -54,11 +55,26 @@
 - 2026-11-08: 予算アラートの `all_updates_rule` を省略しても、Console の予算の画面で「請求先アカウントの管理者とユーザーにメールでアラートを送信」が有効になっていることを確認した。
 (初日の請求額、Spot の回収の状況などを、ここに書く)
 
+## bootstrap の state を失ったら
+バックアップはとらない。リソースは 4 つだけで、`import` ブロックで戻せるため (bootstrap は最初の 1 回だけ apply し、destroy しない。ADR 0004)。
+`terraform.tfvars` も失っていたら、`terraform.tfvars.example` から作り直す。
+
+```bash
+cd terraform/bootstrap
+# 予算アラートの ID を調べる (出力の billingAccounts/.../budgets/ の後ろの部分)
+gcloud billing budgets list --billing-account=<請求先アカウントの ID> 2>&1 | tee ../../out.txt
+cp import.tf.example import.tf
+terraform plan -var budget_id=<予算アラートの ID> -out=import.tfplan 2>&1 | tee ../../out.txt
+terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstrap.plan.txt
+```
+期待する結果は `Plan: 4 to import, 0 to add, 0 to change, 0 to destroy`。`add` や `change` があれば apply しない。
+問題がなければ `terraform apply import.tfplan` → `rm import.tf import.tfplan` → `terraform plan` で `No changes` を確かめる。
+
 ## 落とし穴
 - 【ゾーン型とリージョン型は、作成後に切り替えられない】`location` を変えると、クラスタは作り直しになる。
 - 【リージョン型のノード数はゾーンごと】`node_count = 2` は、2 台 × 3 ゾーン = 6 台になる。
 - 【GKE と同じ Terraform で helm/kubernetes provider を使わない】作り直しや destroy のときに壊れやすい → ADR 0004
-- 【bootstrap の state はローカルにある】失わないようにする。
+- 【bootstrap の state はローカルにある】失ったら「bootstrap の state を失ったら」の手順で import する。【state を失ったまま apply しない】バケットは名前の重複で失敗し、予算アラートは 2 つめが作られる。
 - 【trivy の 0.69.4〜0.69.6 は使わない】CVE-2026-33634 で悪意のある版が出回った。trivy-action・setup-trivy のタグも付け替えられた → ADR 0005
 - 【mise.toml に `[settings] locked = true` を書かない】グローバルの設定のツール (node、starship) まで lock を要求されて失敗する。厳格な検査は CI の `mise install --locked` で行う。
 - 【mise の公式ドキュメントは、手元の mise 2026.10.8 より新しい】`locked_require_checksum` は「不明な設定」と警告された。ドキュメントの設定を使う前に、手元の版で使えるか確かめる。

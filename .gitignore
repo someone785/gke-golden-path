@@ -19,6 +19,8 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+# state を失ったときに一時的に使う (terraform/bootstrap/import.tf.example からコピーする)
+terraform/bootstrap/import.tf
 
 # --- ユーザー端末での実行結果 (Claude が読むための一時ファイル) ---
 out.txt
