@@ -35,7 +35,8 @@
   kubectl -n argocd port-forward svc/argocd-server 8081:80         # http://localhost:8081 (http で開く)
   ```
   消すときは platform → 本体の順に `plan -destroy -out=destroy.tfplan` → `apply destroy.tfplan`
-- 次にやること: フェーズ 1 の残り。`.github/workflows/` (検査と、OIDC での `terraform plan`)、README (構成図と再現の手順)、デモの録画、請求額の実測 (11/8 と 11/11)
+- **2026-11-11: CI が通った**。GitHub Actions から WIF (鍵なし) で認証し、`terraform plan` が `13 to add` を出した。plan に必要な権限は viewer + serviceUsageConsumer + state バケットの objectUser で足りた
+- 次にやること: フェーズ 1 の残り。README (構成図と再現の手順)、デモの録画
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
 ## 期限 (重要)
@@ -50,7 +51,7 @@
 - [x] `terraform/`: VPC、GKE (ゾーン型、Spot ノードプール)、Artifact Registry (2026-11-08 に apply → destroy で確認)
 - [x] `terraform/platform/`: ArgoCD と、最初の Application (2026-11-11 に通しで確認)
 - [x] `gitops/apps/`: OTel Demo の Application (2026-11-11 に通しで確認)
-- [ ] `.github/workflows/`: 検査 (fmt、tflint、trivy、gitleaks) と `terraform plan` (OIDC で鍵なし)
+- [x] `.github/workflows/`: 検査 (fmt、tflint、trivy、gitleaks) と `terraform plan` (OIDC で鍵なし) (2026-11-11、run 43008527183 で checks・plan とも成功、`Plan: 13 to add`)
 - [ ] README (構成図、再現の手順)、デモの録画、初日の請求額の実測
 
 ## 決定事項

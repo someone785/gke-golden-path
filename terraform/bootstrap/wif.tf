@@ -37,7 +37,8 @@ locals {
 }
 
 # CI の terraform plan 用 (フェーズ 1)。読み取りだけを許可する。
-# 【plan に足りる権限かは未確認】CI で初めて plan を動かしたときに、足りないものを足す
+# 下の 3 つ (viewer、serviceUsageConsumer、state バケットの objectUser) で plan が通ることを確認した (2026-11-11、クラスタなしの状態)
+# 【クラスタがある状態での plan は未確認】GKE の詳細の読み取りで足りなければ足す
 resource "google_project_iam_member" "github_plan" {
   project = var.project_id
   role    = "roles/viewer"
