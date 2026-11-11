@@ -28,7 +28,7 @@ variable "node_count" {
 }
 
 variable "node_disk_size_gb" {
-  description = "ノードのブートディスクの大きさ (GB)。料金を抑えるため小さくする"
+  description = "ノードのブートディスクの大きさ (GB)。【30 GB ではイメージの置き場が約 83% まで埋まった】(docs/progress.md の実測の記録)"
   type        = number
-  default     = 30
+  default     = 50
 }
