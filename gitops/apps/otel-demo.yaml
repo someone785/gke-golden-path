@@ -24,3 +24,6 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # 【agent-fixtures の ConfigMap は約 750 KB】client-side apply は全体を annotation
+      # (last-applied-configuration、上限 256 KiB) に保存するので作成に失敗する。server-side apply にする
+      - ServerSideApply=true
