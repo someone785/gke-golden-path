@@ -20,23 +20,10 @@
 - 2026-11-08 19 時台に通しで試したが、platform の apply で ArgoCD の chart の取得が失敗した (GitHub の障害「Increase in timeouts for some unauthenticated users」で HTTP 503)。本体を destroy し、リポジトリを private に戻した。platform の state には data source しかない (作られたものはない)
 - **2026-11-11: 通しで動いた**。`terraform apply` (本体 → platform) → ArgoCD が Git から OTel Demo を入れる → Astronomy Shop・Jaeger・Grafana・ArgoCD の画面が開く、まで確認し、destroy した (約 1 時間)。スクリーンショットはある。録画は未確認
   - 途中で `agent` の Pod が ContainerCreating のまま止まった。原因は `agent-fixtures` の ConfigMap (約 750 KB) が client-side apply の annotation の上限 (256 KiB) を超えたこと。Application に `ServerSideApply=true` を足して直した (落とし穴を参照)
-- 通しの手順 (README に移す予定)。【GitHub Status で障害がないこと、リポジトリが public であることを先に確かめる】
-  ```bash
-  gh repo edit someone785/gke-golden-path --visibility public --accept-visibility-change-consequences
-  cd terraform && set -o pipefail
-  terraform plan -out=main.tfplan 2>&1 | tee ../out.txt          # Plan: 13 to add
-  terraform apply main.tfplan 2>&1 | tee ../out.txt && rm main.tfplan
-  gcloud container clusters get-credentials gke-golden-path --zone asia-northeast1-a   # 作り直すたびに必要
-  cd platform
-  terraform plan -out=platform.tfplan 2>&1 | tee ../../out.txt   # Plan: 2 to add
-  terraform apply platform.tfplan 2>&1 | tee ../../out.txt && rm platform.tfplan
-  kubectl get applications -n argocd                               # root と otel-demo が Synced / Healthy
-  kubectl -n otel-demo port-forward svc/frontend-proxy 8080:8080   # /、/jaeger/ui、/grafana
-  kubectl -n argocd port-forward svc/argocd-server 8081:80         # http://localhost:8081 (http で開く)
-  ```
-  消すときは platform → 本体の順に `plan -destroy -out=destroy.tfplan` → `apply destroy.tfplan`
+- 通しの手順は README の「再現の手順」に移した (2026-11-11)
 - **2026-11-11: CI が通った**。GitHub Actions から WIF (鍵なし) で認証し、`terraform plan` が `13 to add` を出した。plan に必要な権限は viewer + serviceUsageConsumer + state バケットの objectUser で足りた
-- 次にやること: フェーズ 1 の残り。README (構成図と再現の手順)、デモの録画
+- README (何を作ったか、見どころ、構成図 (Mermaid)、再現の手順) を書いた (2026-11-11)。【README の手順のうち、手順 2 の後半 (backend.hcl などのコピーと init) と手順 5 の ArgoCD のパスワードは、通しで試していない】
+- 次にやること: フェーズ 1 の残り。README の手順どおりに通しで動かし、録画する
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
 ## 期限 (重要)
@@ -52,7 +39,8 @@
 - [x] `terraform/platform/`: ArgoCD と、最初の Application (2026-11-11 に通しで確認)
 - [x] `gitops/apps/`: OTel Demo の Application (2026-11-11 に通しで確認)
 - [x] `.github/workflows/`: 検査 (fmt、tflint、trivy、gitleaks) と `terraform plan` (OIDC で鍵なし) (2026-11-11、run 43008527183 で checks・plan とも成功、`Plan: 13 to add`)
-- [ ] README (構成図、再現の手順)、デモの録画、初日の請求額の実測
+- [x] README (構成図、再現の手順) (2026-11-11)、初日の請求額の実測 (2026-11-11)
+- [ ] README の手順どおりに通しで動かし、デモを録画する
 
 ## 決定事項
 
