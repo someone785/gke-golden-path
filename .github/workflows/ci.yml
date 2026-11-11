@@ -1,0 +1,108 @@
+# PR と main への push で、検査と terraform plan を行う。
+# action はタグではなくコミット SHA で固定する (ADR 0005)。末尾のコメントが元のタグ。
+# ツール (terraform、tflint、trivy、gitleaks、pre-commit) は mise.lock のチェックサムで入れる。
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 既定では何も許可しない。必要な権限は job ごとに付ける
+permissions: {}
+
+defaults:
+  run:
+    # `shell: bash` を明示すると -eo pipefail が付き、パイプの途中の失敗で止まる
+    shell: bash
+
+env:
+  # mise の版を固定する。mise-action はダウンロード後に、署名付きのチェックサムで検証する
+  MISE_VERSION: "2026.11.3"
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks で全履歴を検査するため
+          persist-credentials: false
+
+      # mise.lock があると、mise-action が `mise install --locked` を実行する (lock にないツールはエラー)
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          version: ${{ env.MISE_VERSION }}
+
+      # tflint の google プラグイン (.tflint.hcl で版を固定) を入れる。GitHub API の回数制限を避けるため token を渡す
+      - name: tflint --init
+        run: tflint --init --config="$PWD/.tflint.hcl"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # CLAUDE.md: 変更の有無にかかわらず、全ディレクトリに対して実行する
+      - name: pre-commit (all files)
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      # pre-commit の gitleaks はステージ済みの差分だけを見るので、CI では全履歴を検査する
+      - name: gitleaks (full history)
+        run: gitleaks git --redact --verbose .
+
+      - name: terraform validate
+        run: |
+          for dir in terraform/bootstrap terraform terraform/platform; do
+            echo "::group::${dir}"
+            terraform -chdir="${dir}" init -backend=false -input=false
+            terraform -chdir="${dir}" validate
+            echo "::endgroup::"
+          done
+
+  # 本体の terraform plan。bootstrap は state がローカルにあり、platform はクラスタがないと plan できないので対象外
+  plan:
+    runs-on: ubuntu-24.04
+    # フォークからの PR では OIDC のトークンが使えず、WIF の条件 (このリポジトリだけ) にも合わない
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write # GitHub の OIDC トークンを発行するため
+    # 同時に plan すると state のロックを取り合うので、1 つずつ実行する
+    concurrency:
+      group: terraform-plan-main
+      cancel-in-progress: false
+    env:
+      TF_IN_AUTOMATION: "true"
+      # プロジェクト ID と WIF の provider は secrets から渡す。ログでマスクされるようにするため
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          version: ${{ env.MISE_VERSION }}
+
+      # サービスアカウントを使わない直接の Workload Identity Federation (terraform/bootstrap/wif.tf)。鍵ファイルは作らない
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+
+      - name: terraform init
+        working-directory: terraform
+        run: terraform init -input=false -backend-config="bucket=${TF_VAR_project_id}-tfstate"
+
+      # 【plan はクラスタがないときは「13 to add」になるのが正常】作っては消す運用のため
+      - name: terraform plan
+        working-directory: terraform
+        run: |
+          terraform plan -input=false -lock-timeout=120s -no-color | tee plan.txt
+          {
+            echo '### terraform plan (terraform/)'
+            echo '```'
+            grep -E '^  # |^Plan:|^No changes' plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
