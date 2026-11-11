@@ -44,6 +44,14 @@ resource "google_project_iam_member" "github_plan" {
   member  = local.github_principal
 }
 
+# 【provider の user_project_override = true は、呼び出し元に serviceusage.services.use を要求する】
+# roles/viewer には含まれないので、別に付ける (provider のドキュメント)
+resource "google_project_iam_member" "github_plan_serviceusage" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = local.github_principal
+}
+
 # plan は state を読み、ロックのファイルを書くので、state 用のバケットのオブジェクトの読み書きを許可する
 resource "google_storage_bucket_iam_member" "github_tfstate" {
   bucket = google_storage_bucket.tfstate.name

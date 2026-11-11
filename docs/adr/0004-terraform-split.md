@@ -55,5 +55,5 @@
 ### 結果
 - クラスタを消している間も、CI の `terraform plan` が認証できる (CI の plan は、クラスタがない時間のほうが長い)。
 - WIF 用の API (iam、iamcredentials、sts) と、GitHub のリポジトリに付ける IAM のロールも bootstrap に移した。
-- bootstrap の state を失ったときに import するリソースは 11 個になった (`terraform/bootstrap/import.tf.example`)。
+- bootstrap の state を失ったときに import するリソースは 12 個になった (その後 serviceUsageConsumer を足した) (`terraform/bootstrap/import.tf.example`)。
 - 【Artifact Registry も、destroy するとイメージが消える】同じ名前ですぐ作り直せるかは未確認。使うのはフェーズ 3 なので、そのときに置き場所を決める。

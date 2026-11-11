@@ -70,6 +70,11 @@ import {
 }
 
 import {
+  to = google_project_iam_member.github_plan_serviceusage
+  id = "${var.project_id} roles/serviceusage.serviceUsageConsumer ${local.github_principal}"
+}
+
+import {
   to = google_storage_bucket_iam_member.github_tfstate
   id = "b/${var.project_id}-tfstate roles/storage.objectUser ${local.github_principal}"
 }
