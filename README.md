@@ -4,7 +4,7 @@ GKE の上に、開発者が使う「ゴールデンパス」を備えた、小�
 題材のアプリは [OpenTelemetry Demo (Astronomy Shop)](https://opentelemetry.io/docs/demo/)。
 
 > **フェーズ 1 (基盤) が動く状態**。`terraform apply` から、ArgoCD が Git から OTel Demo を入れて画面が開くまでを、下の手順で再現できる。
-> 進捗・決定事項・落とし穴は [docs/progress.md](docs/progress.md) にある。
+> 通しで動かしたときの記録とスクリーンショットは [docs/demo/phase1.md](docs/demo/phase1.md)、進捗・決定事項・落とし穴は [docs/progress.md](docs/progress.md) にある。
 
 ## 何を作ったか (フェーズ 1)
 - **Terraform** で VPC (private nodes + Cloud NAT) と GKE (ゾーン型、Spot ノード 1 台) を作る
@@ -182,6 +182,7 @@ gitops/
   apps/               ArgoCD の Application (OTel Demo)
 .github/workflows/    CI (検査と terraform plan)
 docs/
+  demo/               各フェーズのデモの記録とスクリーンショット
   progress.md         進捗・決定事項・落とし穴
   adr/                設計判断の記録
 ```

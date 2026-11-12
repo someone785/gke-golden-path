@@ -22,8 +22,9 @@
   - 途中で `agent` の Pod が ContainerCreating のまま止まった。原因は `agent-fixtures` の ConfigMap (約 750 KB) が client-side apply の annotation の上限 (256 KiB) を超えたこと。Application に `ServerSideApply=true` を足して直した (落とし穴を参照)
 - 通しの手順は README の「再現の手順」に移した (2026-11-11)
 - **2026-11-11: CI が通った**。GitHub Actions から WIF (鍵なし) で認証し、`terraform plan` が `13 to add` を出した。plan に必要な権限は viewer + serviceUsageConsumer + state バケットの objectUser で足りた
-- README (何を作ったか、見どころ、構成図 (Mermaid)、再現の手順) を書いた (2026-11-11)。【README の手順のうち、手順 2 の後半 (backend.hcl などのコピーと init) と手順 5 の ArgoCD のパスワードは、通しで試していない】
-- 次にやること: フェーズ 1 の残り。README の手順どおりに通しで動かし、録画する
+- README (何を作ったか、見どころ、構成図 (Mermaid)、再現の手順) を書いた (2026-11-11)。【README の手順 2 の後半 (backend.hcl などのコピーと init) は、通しで試していない】(手順 5 の ArgoCD のパスワードは 2026-11-13 に確認した)
+- **2026-11-13: README の手順どおりに通しで動かした** (記録は [demo/phase1.md](demo/phase1.md))。一度で Synced / Healthy になり、クラスタがある状態の CI の plan は `No changes`。destroy してリポジトリを private に戻した
+- 次にやること: フェーズ 1 を完了とし、フェーズ 2 (SLO、アラート、障害の注入) に進む
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
 
 ## 期限 (重要)
@@ -40,7 +41,7 @@
 - [x] `gitops/apps/`: OTel Demo の Application (2026-11-11 に通しで確認)
 - [x] `.github/workflows/`: 検査 (fmt、tflint、trivy、gitleaks) と `terraform plan` (OIDC で鍵なし) (2026-11-11、run 43008527183 で checks・plan とも成功、`Plan: 13 to add`)
 - [x] README (構成図、再現の手順) (2026-11-11)、初日の請求額の実測 (2026-11-11)
-- [ ] README の手順どおりに通しで動かし、デモを録画する
+- [x] README の手順どおりに通しで動かし、手順とスクリーンショットを記録した (2026-11-13、[demo/phase1.md](demo/phase1.md))。動画ではなく記録とスクリーンショットにした (CLAUDE.md の「画面録画か手順の記録」)
 
 ## 決定事項
 
