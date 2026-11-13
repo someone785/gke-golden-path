@@ -73,6 +73,7 @@ Terraform は 3 つに分けている ([ADR 0004](docs/adr/0004-terraform-split.
 | ArgoCD は Terraform で入れて、Terraform が管理し続ける | [0003](docs/adr/0003-argocd-bootstrap-by-terraform.md) |
 | Terraform を bootstrap・本体・platform に分ける | [0004](docs/adr/0004-terraform-split.md) |
 | ツールはチェックサムとコミット SHA で固定する | [0005](docs/adr/0005-pin-tools-by-checksum-and-sha.md) |
+| SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する | [0006](docs/adr/0006-slo-and-alerting.md) |
 
 ## 再現の手順
 

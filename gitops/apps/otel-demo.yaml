@@ -1,5 +1,8 @@
 # OpenTelemetry Demo (Astronomy Shop)。他者が作ったものなので Helm で入れる (CLAUDE.md)。
-# 監視の部品 (OTel Collector、Prometheus、Grafana、Jaeger、OpenSearch) は chart に同梱のものを使う。
+# 監視の部品 (OTel Collector、Prometheus、Alertmanager、Grafana、Jaeger、OpenSearch) は chart に同梱のものを使う。
+#
+# multi-source: chart は Helm のリポジトリから、values はこの Git のリポジトリ (gitops/workloads/otel-demo/) から読む。
+# values を Git のファイルにする理由: Sloth で生成したルール (values-slo-rules.yaml) を、生成したまま渡すため (ADR 0006)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,13 +11,19 @@ metadata:
   # 【finalizers を付けない】terraform/platform/argocd.tf のルートと同じ理由
 spec:
   project: default
-  source:
-    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-    chart: opentelemetry-demo
-    targetRevision: 0.42.6 # アプリ 3.1.0、2026-10-21 公開
-    helm:
-      # まずは既定の values のまま動かし、使うメモリを測ってから調整する (docs/progress.md)
-      valuesObject: {}
+  sources:
+    - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      chart: opentelemetry-demo
+      targetRevision: 0.42.6 # アプリ 3.1.0、2026-10-21 公開。【上げるときは mise.toml の promtool の版も、同梱の Prometheus に合わせる】
+      helm:
+        # 【$values はパスの先頭にだけ書ける。パスは ref のリポジトリのルートからの相対】(ArgoCD のドキュメント)
+        valueFiles:
+          - $values/gitops/workloads/otel-demo/values.yaml
+          - $values/gitops/workloads/otel-demo/values-slo-rules.yaml
+    # values のファイルを読むためだけの source。path を書かないので、ここからはマニフェストを作らない
+    - repoURL: https://github.com/someone785/gke-golden-path.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: otel-demo

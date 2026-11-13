@@ -51,6 +51,11 @@ jobs:
       - name: gitleaks (full history)
         run: gitleaks git --redact --verbose .
 
+      # Sloth で生成したルール (Git にある values-slo-rules.yaml) が、SLO の定義から生成し直した結果と一致するか (ADR 0006)。
+      # スクリプトの中で promtool によるルールの検査も行う
+      - name: SLO rules are up to date
+        run: scripts/gen-slo-rules.sh --check
+
       - name: terraform validate
         run: |
           for dir in terraform/bootstrap terraform terraform/platform; do

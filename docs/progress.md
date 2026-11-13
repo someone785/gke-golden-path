@@ -3,9 +3,11 @@
 このプロジェクトの正の記録。新しいセッションでは、README の次にこれを読む。
 
 ## 現在のフェーズ
-**フェーズ 1** (Terraform で VPC と GKE、ArgoCD、OTel Demo のデプロイ、GitHub Actions、README と構成図)
+**フェーズ 2** (SLO (Sloth)、アラート、障害の注入 (flagd) → 検知 → トレースで原因特定、ポストモーテムと Runbook)
 
-完了の条件: `terraform apply` から OTel Demo の画面が開くまでを、手順どおり再現できる。
+完了の条件: 障害を起こしてから原因を特定するまでのデモ動画がある。
+
+フェーズ 1 は 2026-11-13 に完了した ([demo/phase1.md](demo/phase1.md))。
 
 ## 中断した地点 (2026-11-11)
 - 終わったこと: GCP プロジェクトの作成 (README の手順 1)。雛形・ADR・bootstrap のコード
@@ -26,6 +28,13 @@
 - **2026-11-13: README の手順どおりに通しで動かした** (記録は [demo/phase1.md](demo/phase1.md))。一度で Synced / Healthy になり、クラスタがある状態の CI の plan は `No changes`。destroy してリポジトリを private に戻した
 - 次にやること: フェーズ 1 を完了とし、フェーズ 2 (SLO、アラート、障害の注入) に進む
 - ユーザーの判断待ち: クレジットの期限の前に、bootstrap (state 用のバケット、予算アラート、WIF) も消すか、プロジェクトごと削除するか。消す場合は、バケットの `prevent_destroy` を外す手順を「期限」の節に書く
+
+- **フェーズ 2 の準備 (2026-11-13、クラスタなし)**: OTel Demo の chart 0.42.6 を調べ、SLO とアラートの構成を決めた (ADR 0006)
+  - 同梱の Alertmanager と、Prometheus の configmapReload を有効にした (`gitops/workloads/otel-demo/values.yaml`)
+  - checkout の PlaceOrder の SLO (99%) を Sloth で書き、`scripts/gen-slo-rules.sh` でルールを生成した。CI で一致と promtool の検査をする
+  - Application を multi-source にし、values を Git から読むようにした
+  - sloth 0.16.0、promtool 3.14.0、helm 4.3.1 を mise で入れた (linux-x64 のチェックサムは公式のファイルと一致)
+  - 次: クラスタを動かして、span_name の実際の値・アラートが鳴ること・トレースで原因が分かることを確かめる。その後 Runbook (`docs/runbooks/checkout-place-order.md`) を書く
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -53,6 +62,7 @@
 | 2026-11-08 | Terraform を bootstrap・本体・platform の 3 つに分ける | [0004](adr/0004-terraform-split.md) |
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
 | 2026-11-08 | ArgoCD は認証なしでリポジトリを読む。クラスタを動かすときは public にする (公開の前に gitleaks で全履歴を検査した)。2026-11-11 時点では、動かしていない間は private に戻している | — |
+| 2026-11-13 | SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する。最初の SLO は checkout の注文の成功率 | [0006](adr/0006-slo-and-alerting.md) |
 
 ## 未確認のこと (確認したら、ここを更新する)
 - 東京と他のリージョンの料金の差。Spot の在庫と回収の頻度
@@ -135,10 +145,14 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【フェーズ 1 の流れは GitHub に依存する】ArgoCD の chart (github.com の releases)、ArgoCD が読むリポジトリ、OTel Demo のイメージ (ghcr.io) は、すべて認証なしで GitHub から取得する。GitHub の障害中は動かない
 - 【ArgoCD はリポジトリを認証なしで読む】リポジトリは public にしておく (2026-11-08 に決定。private のままにする場合は deploy key などが要る)
 - 【クラスタを作り直すと、kubeconfig の接続先が古いまま】`gcloud container clusters get-credentials` をやり直す。やらないと kubectl が古い IP にタイムアウトする
+- 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
+- 【Alertmanager のサブチャートは既定で PVC を作る】クラスタごと消すと PD が残るおそれ → 永続ディスクを無効にした
 - 【OTel Demo の `agent-fixtures` の ConfigMap は約 750 KB】ArgoCD の既定 (client-side apply) では annotation の上限 256 KiB を超えて作れない → `ServerSideApply=true`
 - 【ArgoCD の自動同期は、同じ版で一度失敗すると再挑戦しないことがある】syncOptions を直しても同期されなかったので、`kubectl -n argocd patch application <名前> --type merge -p '{"operation":{"sync":{...}}}'` で 1 回だけ同期を指示した (挙動の仕様は未確認)
 - 【`server.insecure` の ArgoCD は http で開く】https で開くと接続を切られる
 
 ## 後でやる
 (今のフェーズで不要なものは、ここに書いて止める)
+- フェーズ 3: Alertmanager の通知先を Slack などにする (Webhook の URL を External Secrets で渡す)
+- 同梱の Grafana のアラート `CartAddItemHighLatency` は、chart の不具合 (`.yml` と `*.yaml`) で読み込まれていない。上流に報告するかは未定
 - フェーズ 3: Artifact Registry の置き場所を決める。本体にあると destroy のたびにイメージが消え、同じ名前ですぐ作り直せるかも未確認 (ADR 0004 の追記)

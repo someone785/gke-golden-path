@@ -1,0 +1,22 @@
+# OpenTelemetry Demo の chart (gitops/apps/otel-demo.yaml) に渡す values。
+# 監視の部品は chart に同梱のものを使い、無効にされている部品を有効にするだけにする (CLAUDE.md、ADR 0006)。
+# SLO のルールは、Sloth で生成した values-slo-rules.yaml に分けている。
+prometheus:
+  # 同梱の Alertmanager (prometheus-community の alertmanager chart) を有効にする。
+  # 有効にすると、Prometheus の設定に Alertmanager の宛先が自動で入る (prometheus chart の cm.yaml)
+  alertmanager:
+    enabled: true
+    # port-forward の名前を分かりやすくするため (svc/alertmanager)
+    fullnameOverride: alertmanager
+    # 【永続ディスクを使わない】既定は 50Mi の PVC。クラスタごと消すと、PD が GCP に残って課金が続くおそれがある (未確認)。
+    # 消えて困るもの (silence など) はない
+    persistence:
+      enabled: false
+    resources:
+      limits:
+        memory: 64Mi
+  # 【OTel Demo の values では無効】無効のままだと、ルールを変えても Prometheus が読み直さない
+  # (Deployment に設定の checksum の annotation もないため、Pod も作り直されない)
+  configmapReload:
+    prometheus:
+      enabled: true

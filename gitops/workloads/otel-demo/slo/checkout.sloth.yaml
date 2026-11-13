@@ -1,0 +1,35 @@
+# checkout の SLO (ADR 0006)。Sloth の CLI で Prometheus のルールを生成する。
+# 生成: scripts/gen-slo-rules.sh (生成物 ../values-slo-rules.yaml も Git に置き、CI で一致を検査する)
+#
+# SLI は、同梱の OTel Collector の span_metrics がトレースから作るメトリクス。アプリに計装を足さない。
+# 【span_name の値は未確認】OTel Demo の gRPC のサーバー側の span 名から推測した。
+# クラスタを動かしたときに Prometheus で `count by (span_name) (traces_span_metrics_calls_total{service_name="checkout"})` を確かめる
+version: "prometheus/v1"
+service: "checkout"
+labels:
+  owner: "gke-golden-path"
+slos:
+  - name: "place-order-availability"
+    # 【目標の 99% はデモ用】flagd の paymentFailure (10〜100%) で、数分のうちにページのアラートが鳴る値にした
+    objective: 99.0
+    description: "注文 (PlaceOrder) の成功率"
+    sli:
+      events:
+        # status_code が ERROR の span を失敗として数える (gRPC のエラーは span の status に反映される)
+        error_query: |
+          sum(rate(traces_span_metrics_calls_total{service_name="checkout",span_name="oteldemo.CheckoutService/PlaceOrder",status_code="STATUS_CODE_ERROR"}[{{.window}}]))
+        total_query: |
+          sum(rate(traces_span_metrics_calls_total{service_name="checkout",span_name="oteldemo.CheckoutService/PlaceOrder"}[{{.window}}]))
+    alerting:
+      name: CheckoutPlaceOrderErrorBudgetBurn
+      labels:
+        category: "availability"
+      annotations:
+        summary: "checkout の注文の失敗が増え、エラーバジェットを速く消費している"
+        runbook_url: "https://github.com/someone785/gke-golden-path/blob/main/docs/runbooks/checkout-place-order.md"
+      page_alert:
+        labels:
+          severity: "page"
+      ticket_alert:
+        labels:
+          severity: "ticket"
