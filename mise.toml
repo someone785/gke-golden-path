@@ -22,4 +22,10 @@ pre-commit = "4.7.0"
 # 【kubectl はクラスタの版と ±1 マイナー以内にする】2026-11-08 に作ったクラスタは 1.36.4-gke.2046003 (REGULAR チャンネル)。
 # クラスタが自動で上がったら、ここも合わせて上げる
 kubectl = "1.36.6"
-# helm は、platform (ArgoCD) の作業で必要になったら足す
+# 手元の `helm template` で、chart に渡す values の展開を確かめるために使う (クラスタへの install には使わない。入れるのは ArgoCD)
+helm = "4.3.1"
+# SLO の定義から Prometheus のルールを生成する (フェーズ 2、ADR 0006)。operator ではなく CLI で使う
+sloth = "0.16.0"
+# ルールの検査に使う。【OTel Demo の chart 0.42.6 に同梱の Prometheus (v3.14.0) と版をそろえる】
+# chart を上げて Prometheus の版が変わったら、ここも合わせる
+promtool = "3.14.0"

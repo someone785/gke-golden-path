@@ -42,6 +42,39 @@ checksum = "sha256:54fe94f644b832dd08e8c3a5915efb3bfa862386d59fb27ca0792cb687a83
 url = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.0/gitleaks_8.30.0_windows_x64.zip"
 url_api = "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/321137330"
 
+[[tools.helm]]
+version = "4.3.1"
+backend = "aqua:helm/helm"
+specifiers = ["4.3.1"]
+
+[tools.helm."platforms.linux-arm64"]
+checksum = "sha256:8cf8f66ecbc252ac8f7f06cca68aba88508ddfde3a6a34feb1678ad1694b4f88"
+url = "https://get.helm.sh/helm-v4.3.1-linux-arm64.tar.gz"
+
+[tools.helm."platforms.linux-arm64-musl"]
+checksum = "sha256:8cf8f66ecbc252ac8f7f06cca68aba88508ddfde3a6a34feb1678ad1694b4f88"
+url = "https://get.helm.sh/helm-v4.3.1-linux-arm64.tar.gz"
+
+[tools.helm."platforms.linux-x64"]
+checksum = "sha256:0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b"
+url = "https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz"
+
+[tools.helm."platforms.linux-x64-musl"]
+checksum = "sha256:0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b"
+url = "https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz"
+
+[tools.helm."platforms.macos-arm64"]
+checksum = "sha256:6b4e61c8cd27d99e5a801e63ff25dd5c70b36875c2cd659d3e9ce6b76fc23198"
+url = "https://get.helm.sh/helm-v4.3.1-darwin-arm64.tar.gz"
+
+[tools.helm."platforms.macos-x64"]
+checksum = "sha256:34bec4eba761ba5c16d1965ee6b8f5b0abe5993974a802274e2a4f0418893d89"
+url = "https://get.helm.sh/helm-v4.3.1-darwin-amd64.tar.gz"
+
+[tools.helm."platforms.windows-x64"]
+checksum = "sha256:5735a2bd59071b814546c6d0a76f29a8fd3ebe06e3a4791dd2784804ae895f34"
+url = "https://get.helm.sh/helm-v4.3.1-windows-amd64.tar.gz"
+
 [[tools.kubectl]]
 version = "1.36.6"
 backend = "aqua:kubernetes/kubernetes/kubectl"
@@ -109,6 +142,100 @@ url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/63
 checksum = "sha256:393488513aed286d7a5a978a1fe79b2f5a8802927242a2d241ff10c1a8e8c885"
 url = "https://github.com/pre-commit/pre-commit/releases/download/v4.7.0/pre-commit-4.7.0.pyz"
 url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/637459099"
+
+[[tools.promtool]]
+version = "3.14.0"
+backend = "aqua:prometheus/prometheus"
+specifiers = ["3.14.0"]
+
+[tools.promtool."platforms.linux-arm64"]
+checksum = "sha256:077f3781ab7245dc04c9a3c9b78ba120fc8e41aa0dc97489b0af67247e50ba83"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519110559"
+
+[tools.promtool."platforms.linux-arm64-musl"]
+checksum = "sha256:077f3781ab7245dc04c9a3c9b78ba120fc8e41aa0dc97489b0af67247e50ba83"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519110559"
+
+[tools.promtool."platforms.linux-x64"]
+checksum = "sha256:f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519110475"
+
+[tools.promtool."platforms.linux-x64-musl"]
+checksum = "sha256:f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519110475"
+
+[tools.promtool."platforms.macos-arm64"]
+checksum = "sha256:a9623f7f4fe65b1b171b423c1a72bbf23dfdf41a171dcb33e7dd302af80dc01c"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519109748"
+
+[tools.promtool."platforms.macos-x64"]
+checksum = "sha256:a14307b9726e66cadb81be9a544732623af26dabeb7702c987aa9c3c062ada34"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519109663"
+
+[tools.promtool."platforms.windows-x64"]
+checksum = "sha256:272bcdd15d9327c7b1e08fe916ea48633819f82f2ea0bf354e6b8c0350c156ba"
+checksum_source = "mise-versions"
+url = "https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.windows-amd64.tar.gz"
+url_api = "https://api.github.com/repos/prometheus/prometheus/releases/assets/519112702"
+
+[[tools.sloth]]
+version = "0.16.0"
+backend = "aqua:slok/sloth"
+specifiers = ["0.16.0"]
+
+[tools.sloth."platforms.linux-arm64"]
+checksum = "sha256:7b570c465df3cc997e744dfcfcea83c3559bba6b12f4d6165994925419cbb41c"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-linux-arm64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523785"
+
+[tools.sloth."platforms.linux-arm64-musl"]
+checksum = "sha256:7b570c465df3cc997e744dfcfcea83c3559bba6b12f4d6165994925419cbb41c"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-linux-arm64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523785"
+
+[tools.sloth."platforms.linux-x64"]
+checksum = "sha256:1cecaa50853abbb3669a928612b523df8174d258ea6f2a3c8f048e5fc5af90b2"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-linux-amd64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523724"
+
+[tools.sloth."platforms.linux-x64-musl"]
+checksum = "sha256:1cecaa50853abbb3669a928612b523df8174d258ea6f2a3c8f048e5fc5af90b2"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-linux-amd64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523724"
+
+[tools.sloth."platforms.macos-arm64"]
+checksum = "sha256:d9ee5967fd412f6592a0c5aec35f7f9f1fc4a2726eb25414a11815ca78185aa9"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-darwin-arm64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523699"
+
+[tools.sloth."platforms.macos-x64"]
+checksum = "sha256:c62623ea730818ef611c82fd1318d9741cfde4717a6179ebd9e3649a3b8b6017"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-darwin-amd64"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523669"
+
+[tools.sloth."platforms.windows-x64"]
+checksum = "sha256:49f5fa5b8fce11814f5e81ab6a142c634963a15740a78b8451c9fb5969d93e30"
+checksum_source = "mise-versions"
+url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-windows-amd64.exe"
+url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523832"
 
 [[tools.terraform]]
 version = "1.16.2"
