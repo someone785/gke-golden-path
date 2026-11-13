@@ -41,7 +41,8 @@
 - 【生成物を手で直さない】SLO の定義を直して、スクリプトで生成し直す。CI が不一致を検出する。
 - 【chart を上げたら、同梱の Prometheus の版と、Alertmanager・configmapReload の values のキーが変わっていないか確かめる】`helm template` で確認する。
 - 【SLO の期間は 30 日だが、クラスタは使うときだけ動かす】エラーバジェットの残量は意味のある値にならない。デモで見せるのは、バーンレートのアラートが鳴ることと、そこからトレースで原因を特定する流れ。
-- 未確認:
-  - Prometheus での `span_name` の実際の値 (`oteldemo.CheckoutService/PlaceOrder` と推測)
-  - `paymentFailure` のとき、checkout の PlaceOrder の span が `STATUS_CODE_ERROR` になるか
-  - Alertmanager を有効にしたときの、メモリの使用量
+- 2026-11-14 にクラスタで確かめたこと:
+  - `span_name` は推測どおり `oteldemo.CheckoutService/PlaceOrder`
+  - `paymentFailure` 50% で、checkout の PlaceOrder の span が `STATUS_CODE_ERROR` になり、約 1.5〜2 分で page のアラートが鳴った
+  - Alertmanager のメモリは約 10 Mi
+  - 【障害を止めても、遅めの燃え方の条件 (30 分と 6 時間の窓、6%) で、しばらく鳴り続ける】デモの段取りに入れる

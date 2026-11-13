@@ -34,7 +34,14 @@
   - checkout の PlaceOrder の SLO (99%) を Sloth で書き、`scripts/gen-slo-rules.sh` でルールを生成した。CI で一致と promtool の検査をする
   - Application を multi-source にし、values を Git から読むようにした
   - sloth 0.16.0、promtool 3.14.0、helm 4.3.1 を mise で入れた (linux-x64 のチェックサムは公式のファイルと一致)
-  - 次: クラスタを動かして、span_name の実際の値・アラートが鳴ること・トレースで原因が分かることを確かめる。その後 Runbook (`docs/runbooks/checkout-place-order.md`) を書く
+  - (済) クラスタを動かして、span_name の実際の値・アラートが鳴ること・トレースで原因が分かることを確かめる。その後 Runbook (`docs/runbooks/checkout-place-order.md`) を書く
+- **2026-11-14: フェーズ 2 の通し稽古 (クラスタあり)**。障害の注入 → アラート → トレースで原因の特定、までつながった
+  - multi-source の Application は一度で Synced / Healthy。Alertmanager は Running (メモリ 10 Mi)、Prometheus に configmap-reload が付いた。Sloth のルールが読み込まれ、Prometheus から Alertmanager が見えた
+  - span_name は推測どおり `oteldemo.CheckoutService/PlaceOrder` (checkout と frontend の両方にある。SLO は `service_name="checkout"` で絞る)
+  - flagd の `paymentFailure` を 50% にした (00:04 ごろ) → SLI (5 分) は 40% → **約 1.5〜2 分でアラート (page) が Alertmanager に届いた**
+  - Jaeger: `payment charge` → `PaymentService/Charge` → checkout の `PlaceOrder` → frontend の `POST /api/checkout` (422) と、エラーが呼び出しをさかのぼるのが見えた (スクリーンショットは `docs/demo/images/phase2/rehearsal-*`)。トレースに `Incomplete` の表示が出た (原因は未確認)
+  - 00:18:34 に off にしたが、13 分後もアラートは鳴ったまま。30 分と 6 時間の窓の条件 (6%) が成り立っているため (30 分の窓 21.9%)。Sloth の多窓のアラートとして正しい動き。解消までの時間は未計測
+  - 次: Runbook (`docs/runbooks/checkout-place-order.md`) とポストモーテムの雛形を書く → 動画を撮る
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -146,6 +153,9 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【ArgoCD はリポジトリを認証なしで読む】リポジトリは public にしておく (2026-11-08 に決定。private のままにする場合は deploy key などが要る)
 - 【クラスタを作り直すと、kubeconfig の接続先が古いまま】`gcloud container clusters get-credentials` をやり直す。やらないと kubectl が古い IP にタイムアウトする
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
+- 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
+- 【Sloth の page のアラートは、障害を止めてもすぐには消えない】30 分と 6 時間の窓の条件 (エラー率 6%) が残るため。15 分間 40〜50% の失敗なら、止めてから 25〜30 分ほど鳴り続ける (推定)
+- 【起動の直後は span_metrics にサービスがそろっていない】注文などの操作が流れるまで、その span の系列はない。確認は数分待ってから
 - 【Alertmanager のサブチャートは既定で PVC を作る】クラスタごと消すと PD が残るおそれ → 永続ディスクを無効にした
 - 【OTel Demo の `agent-fixtures` の ConfigMap は約 750 KB】ArgoCD の既定 (client-side apply) では annotation の上限 256 KiB を超えて作れない → `ServerSideApply=true`
 - 【ArgoCD の自動同期は、同じ版で一度失敗すると再挑戦しないことがある】syncOptions を直しても同期されなかったので、`kubectl -n argocd patch application <名前> --type merge -p '{"operation":{"sync":{...}}}'` で 1 回だけ同期を指示した (挙動の仕様は未確認)
