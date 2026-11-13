@@ -41,7 +41,8 @@
   - flagd の `paymentFailure` を 50% にした (00:04 ごろ) → SLI (5 分) は 40% → **約 1.5〜2 分でアラート (page) が Alertmanager に届いた**
   - Jaeger: `payment charge` → `PaymentService/Charge` → checkout の `PlaceOrder` → frontend の `POST /api/checkout` (422) と、エラーが呼び出しをさかのぼるのが見えた (スクリーンショットは `docs/demo/images/phase2/rehearsal-*`)。トレースに `Incomplete` の表示が出た (原因は未確認)
   - 00:18:34 に off にしたが、13 分後もアラートは鳴ったまま。30 分と 6 時間の窓の条件 (6%) が成り立っているため (30 分の窓 21.9%)。Sloth の多窓のアラートとして正しい動き。解消までの時間は未計測
-  - 次: Runbook (`docs/runbooks/checkout-place-order.md`) とポストモーテムの雛形を書く → 動画を撮る
+  - Runbook (`docs/runbooks/checkout-place-order.md`) を書いた (2026-11-14)。アラートの `runbook_url` のリンク先
+  - 次: ポストモーテムの雛形と、通し稽古の分の 1 件目 → 動画の段取り表 → 動画を撮る
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
