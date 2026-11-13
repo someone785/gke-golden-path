@@ -42,7 +42,8 @@
   - Jaeger: `payment charge` → `PaymentService/Charge` → checkout の `PlaceOrder` → frontend の `POST /api/checkout` (422) と、エラーが呼び出しをさかのぼるのが見えた (スクリーンショットは `docs/demo/images/phase2/rehearsal-*`)。トレースに `Incomplete` の表示が出た (原因は未確認)
   - 00:18:34 に off にしたが、13 分後もアラートは鳴ったまま。30 分と 6 時間の窓の条件 (6%) が成り立っているため (30 分の窓 21.9%)。Sloth の多窓のアラートとして正しい動き。解消までの時間は未計測
   - Runbook (`docs/runbooks/checkout-place-order.md`) を書いた (2026-11-14)。アラートの `runbook_url` のリンク先
-  - 次: ポストモーテムの雛形と、通し稽古の分の 1 件目 → 動画の段取り表 → 動画を撮る
+  - ポストモーテムの雛形 (`docs/postmortems/TEMPLATE.md`) と、通し稽古の分の 1 件目を書いた (2026-11-14)
+  - 次: 動画の段取り表 → 動画を撮る
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -164,6 +165,8 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 
 ## 後でやる
 (今のフェーズで不要なものは、ここに書いて止める)
+- SLI が「空」のとき (エラーが一度も起きていない)、ダッシュボードで 0 として見せるかを検討する (ポストモーテム 2026-11-14 の対策)
+- Jaeger のトレースの `Incomplete` の原因を調べる (同上)
 - フェーズ 3: Alertmanager の通知先を Slack などにする (Webhook の URL を External Secrets で渡す)
 - 同梱の Grafana のアラート `CartAddItemHighLatency` は、chart の不具合 (`.yml` と `*.yaml`) で読み込まれていない。上流に報告するかは未定
 - フェーズ 3: Artifact Registry の置き場所を決める。本体にあると destroy のたびにイメージが消え、同じ名前ですぐ作り直せるかも未確認 (ADR 0004 の追記)

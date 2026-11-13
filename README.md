@@ -187,4 +187,5 @@ docs/
   progress.md         進捗・決定事項・落とし穴
   adr/                設計判断の記録
   runbooks/           アラートごとの対応手順
+  postmortems/        障害の記録 (TEMPLATE.md が雛形)
 ```
