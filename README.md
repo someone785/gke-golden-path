@@ -3,8 +3,9 @@
 GKE の上に、開発者が使う「ゴールデンパス」を備えた、小さな内部開発者プラットフォームを作る学習プロジェクト。
 題材のアプリは [OpenTelemetry Demo (Astronomy Shop)](https://opentelemetry.io/docs/demo/)。
 
-> **フェーズ 1 (基盤) が動く状態**。`terraform apply` から、ArgoCD が Git から OTel Demo を入れて画面が開くまでを、下の手順で再現できる。
-> 通しで動かしたときの記録とスクリーンショットは [docs/demo/phase1.md](docs/demo/phase1.md)、進捗・決定事項・落とし穴は [docs/progress.md](docs/progress.md) にある。
+> **フェーズ 2 (SLO と障害対応) まで完了**。`terraform apply` から OTel Demo の画面が開くまでを、下の手順で再現できる。
+> 障害を起こすと、SLO のアラートが鳴り、トレースで原因を特定できる。
+> デモの記録: [フェーズ 1 (基盤)](docs/demo/phase1.md)、[フェーズ 2 (障害の検知と原因の特定)](docs/demo/phase2.md)。進捗・決定事項・落とし穴は [docs/progress.md](docs/progress.md) にある。
 
 ## 何を作ったか (フェーズ 1)
 - **Terraform** で VPC (private nodes + Cloud NAT) と GKE (ゾーン型、Spot ノード 1 台) を作る
@@ -12,10 +13,16 @@ GKE の上に、開発者が使う「ゴールデンパス」を備えた、小�
 - **OpenTelemetry Demo** を Helm chart で入れる。トレース (Jaeger)、メトリクス (Prometheus、Grafana) は chart に同梱のものを使う
 - **GitHub Actions** で、すべてのファイルの検査と `terraform plan` を行う。GCP への認証は OIDC と Workload Identity Federation で、**鍵ファイルを作らない**
 
+## 何を作ったか (フェーズ 2)
+- **SLO**: checkout の注文の成功率 99% を [Sloth](https://sloth.dev/) で定義し、多窓のバーンレートのアラートを生成する。生成物も Git に置き、CI で一致を検査する → [ADR 0006](docs/adr/0006-slo-and-alerting.md)
+- **アラート**: OTel Demo の chart に同梱の Prometheus と Alertmanager を使う (無効にされていた Alertmanager を有効にしただけで、部品は足していない)
+- **障害の注入と対応**: flagd で payment を 50% 失敗させる → 約 2 分でアラート → [Runbook](docs/runbooks/checkout-place-order.md) に沿ってトレースで原因を特定 → [ポストモーテム](docs/postmortems/2026-11-17-payment-failure.md)
+
 ## 見どころ
 - **作っては消す前提の設計**: 使うときだけ apply し、終わったら destroy する (動かしている間は約 21 円 / 時間)。消えては困るもの (state、予算アラート、WIF) は bootstrap に分けて残す → [ADR 0004](docs/adr/0004-terraform-split.md)
 - **鍵のない CI**: サービスアカウントも作らず、GitHub のリポジトリ (principalSet) に読み取りの権限だけを直接付ける ([terraform/bootstrap/wif.tf](terraform/bootstrap/wif.tf))
 - **サプライチェーンの対策**: ツールは `mise.lock` のチェックサムで、GitHub Actions はコミット SHA で固定する → [ADR 0005](docs/adr/0005-pin-tools-by-checksum-and-sha.md)
+- **症状と原因が別のサービス**: アラートは checkout で鳴り、原因は payment。メトリクスだけでは発生源を決められず、トレースで赤い印をたどって特定する ([デモの記録](docs/demo/phase2.md))
 - **つまずいたことの記録**: GKE・ArgoCD・WIF で実際に踏んだ落とし穴を [docs/progress.md](docs/progress.md#落とし穴) に残した (例: OTel Demo の大きな ConfigMap は client-side apply で作れない、削除した WIF の pool は 30 日間同じ ID で作れない)
 
 ## 構成図
