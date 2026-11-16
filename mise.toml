@@ -29,3 +29,6 @@ sloth = "0.16.0"
 # ルールの検査に使う。【OTel Demo の chart 0.42.6 に同梱の Prometheus (v3.14.0) と版をそろえる】
 # chart を上げて Prometheus の版が変わったら、ここも合わせる
 promtool = "3.14.0"
+# 自分のサービス (services/) とテンプレート (templates/service-go/) のビルドとテストに使う (フェーズ 3)。
+# 【Dockerfile のビルド用のイメージの Go と版をそろえる】
+go = "1.27.4"
