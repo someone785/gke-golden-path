@@ -51,7 +51,9 @@
   - 手での時刻の記録は続かず、Prometheus・Jaeger・Alertmanager の API から取り戻した
   - Jaeger の span の詳細の Resource の行にプロジェクト ID が出たので、画像の該当の行を塗りつぶした
 - **2026-11-17: フェーズ 3 の計画を立てた** ([phase3-plan.md](phase3-plan.md))。イメージの置き場所は GHCR、サービスの言語は Go に決めた (ADR 0007 に書く)
-- 次: フェーズ 3 のステップ 1 (Go のサービス)
+- **2026-11-17: フェーズ 3 のステップ 1** (`services/greeter`、Go)。テスト 5 つ、distroless (nonroot) のイメージ、SIGTERM での終了を確かめた。trivy で間接の依存 `golang.org/x/net` v0.59.0 に HIGH が 2 件見つかり、0.62.0 に上げて 0 件にした
+  - Go 1.27.4 を mise で入れた (linux-x64 のチェックサムは go.dev の値と一致)
+- 次: フェーズ 3 のステップ 2 (CI でイメージのビルド・検査・SBOM・署名)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -164,6 +166,7 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【クラスタを作り直すと、kubeconfig の接続先が古いまま】`gcloud container clusters get-credentials` をやり直す。やらないと kubectl が古い IP にタイムアウトする
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
 - 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
+- 【otelhttp で mux 全体を包むと、span の名前が実際の URL になる】名前を決めるのが経路の振り分けより前のため。存在しないパスのたびに名前が増え、span_metrics の系列が膨らむ → 経路ごとに包む (`services/greeter/handler.go`)
 - 【Jaeger の span の詳細の Resource の行に、プロジェクト ID (`cloud.account.id`) が出る】スクリーンショットでは隠す
 - 【Sloth の ticket のアラートは、作っては消す運用ではほぼ解消しない】クラスタの履歴が 2 時間未満だと、2 時間・6 時間・1 日・3 日の窓がすべて同じ値になり、障害中のエラーが残り続ける
 - 【障害の前に平常の時間を長くとると、page が鳴るのが遅くなる】1 時間の窓に平常の時間が含まれるため (2026-11-17 は約 6 分。通し稽古は約 1.5 分)
