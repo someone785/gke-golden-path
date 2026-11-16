@@ -44,13 +44,15 @@ curl -sG http://localhost:9090/api/v1/query \
 curl -sG http://localhost:9090/api/v1/query \
   --data-urlencode 'query=sort_desc(sum by (service_name, span_name) (rate(traces_span_metrics_calls_total{status_code="STATUS_CODE_ERROR"}[5m])))'
 ```
-- checkout と frontend 以外のサービスが出ていたら、そこが原因の候補。
+- checkout、frontend、frontend-proxy (frontend の手前のプロキシ) 以外のサービスが出ていたら、そこが原因の候補。
+- 【メトリクスだけでは発生源を決められない】1 回の失敗した注文が、呼び出しの経路にあるすべての span にエラーとして残るので、上位の行は同じ値になる (2026-11-17 のデモ)。発生源はトレースで確かめる。
 
 ### トレースで確かめる
 1. Jaeger で Service を `checkout`、Attributes (Tags) に `error=true` を入れて Find Traces。
 2. 失敗したトレースを 1 つ開く。
 3. 赤い印 (エラー) の付いた span を、**呼び出し先の方向 (下)** にたどる。赤い印が付いている**一番深い span** が発生源。
 4. その span の Tags と Logs で、エラーの内容 (例外のメッセージなど) を読む。
+   【span の詳細の Resource の行には、プロジェクト ID (`cloud.account.id`) が出る】画面を共有・撮影するときは隠す。
 
 例 (2026-11-14 の通し稽古。payment が原因のとき):
 ```
@@ -98,6 +100,10 @@ kubectl -n otel-demo logs <Pod の名前> --previous
 【アラートは、直してもすぐには消えない】page のアラートには「30 分と 6 時間の窓でエラー率 6% 超」という条件もある。
 障害中の失敗が 30 分の窓に残る間は鳴り続ける (通し稽古では、15 分間 40〜50% の失敗のあと、止めてから 13 分後もまだ鳴っていた)。
 **5 分の窓が 0 に戻っていれば対応は終わり**。アラートが消えるのを待つ必要はない。消えないことを理由に、別の対処を重ねない。
+
+【ticket はさらに長く鳴る】ticket の条件は「2 時間と 1 日の窓で 3% 超」または「6 時間と 3 日の窓で 1% 超」。
+クラスタを作ってから 2 時間以内は、これらの窓がすべて「起動してから今まで」になり、障害中のエラーが抜けない。
+2026-11-17 のデモでは、page は対処から約 25 分で解消したが、ticket は 40 分たっても鳴っていた (作っては消す運用では、ほぼクラスタを消すまで鳴る)。
 
 窓ごとの値を見るときは:
 ```bash

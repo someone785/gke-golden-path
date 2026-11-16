@@ -46,13 +46,19 @@ sort_desc(sum by (service_name, span_name) (rate(traces_span_metrics_calls_total
 ```
 
 ### 5. 時刻の記録
+【手での記録は続かない】2026-11-17 のデモでは、画面の操作と撮影で手が足りず、`echo` での記録は最初の 1 回だけになった。
+時刻は、後から API で取り戻せる。手での記録は補助にする:
+- アラートが鳴った時刻: `curl -s http://localhost:9090/api/v1/alerts` の `activeAt`
+- 最初と最後のエラー: Jaeger の API (`http://localhost:8080/jaeger/ui/api/traces?service=checkout&tags={"error":"true"}&lookback=1h`) のトレースの開始時刻
+- 回復した時刻: `slo:sli_error:ratio_rate5m` を `query_range` で問い合わせ、0 になった時刻
+
 各場面で、別の端末で次を実行する。`<出来事>` は下の表の「時刻の記録」の列の言葉にする:
 ```bash
 echo "$(date +%T) <出来事>" | tee -a ~/projects/gke-golden-path/out.txt
 ```
 
 ### 6. スクリーンショットの注意
-- 【写さない】ArgoCD のパスワード、プロジェクト ID (gcloud の出力、ブラウザの他のタブ)、通知
+- 【写さない】ArgoCD のパスワード、プロジェクト ID (gcloud の出力、ブラウザの他のタブ、**Jaeger の span の詳細の Resource の行**)、通知
 - 置き場所は `docs/demo/images/phase2/`。ファイル名は下の表のとおり (撮ったものを貼ってもらえれば、Claude が名前を付けて置く)
 
 ## 本番
