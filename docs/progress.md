@@ -50,7 +50,8 @@
   - page は対処から約 25 分で解消。ticket は 40 分以上鳴り続けた (クラスタの履歴が 2 時間未満だと、長い窓がすべて同じ値になる)
   - 手での時刻の記録は続かず、Prometheus・Jaeger・Alertmanager の API から取り戻した
   - Jaeger の span の詳細の Resource の行にプロジェクト ID が出たので、画像の該当の行を塗りつぶした
-- 次: フェーズ 3 の計画 (kind で進められるものから)
+- **2026-11-17: フェーズ 3 の計画を立てた** ([phase3-plan.md](phase3-plan.md))。イメージの置き場所は GHCR、サービスの言語は Go に決めた (ADR 0007 に書く)
+- 次: フェーズ 3 のステップ 1 (Go のサービス)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -179,4 +180,4 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - Jaeger のトレースの `Incomplete` の原因を調べる (同上)
 - フェーズ 3: Alertmanager の通知先を Slack などにする (Webhook の URL を External Secrets で渡す)
 - 同梱の Grafana のアラート `CartAddItemHighLatency` は、chart の不具合 (`.yml` と `*.yaml`) で読み込まれていない。上流に報告するかは未定
-- フェーズ 3: Artifact Registry の置き場所を決める。本体にあると destroy のたびにイメージが消え、同じ名前ですぐ作り直せるかも未確認 (ADR 0004 の追記)
+- フェーズ 3: Artifact Registry の置き場所を決める。本体にあると destroy のたびにイメージが消え、同じ名前ですぐ作り直せるかも未確認 (ADR 0004 の追記) → イメージは GHCR に置くことにした (2026-11-17)。Artifact Registry を消すかは ADR 0007 で決める
