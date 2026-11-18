@@ -13,5 +13,5 @@ replicas:
   name: greeter
 # 【手で書き換えない】scripts/promote.sh が dev の digest をコピーする
 images:
-- digest: sha256:5d138a12216ad2ca310f7c67e377d583769e5f66e93069108dda1bea51c97c22
+- digest: sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
   name: ghcr.io/someone785/greeter
