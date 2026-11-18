@@ -39,3 +39,6 @@ cosign = "3.1.4"
 kind = "0.33.0"
 # Kustomize の overlay の確認 (kustomize build) と、イメージの digest の書き換え (kustomize edit set image) に使う (ADR 0009)
 kustomize = "5.8.3"
+# Kyverno のポリシーを、クラスタに入れる前に手元と CI で試す (kyverno apply / test)。
+# 【クラスタの Kyverno (gitops/apps/common/kyverno.yaml の chart 3.9.2 = v1.19.2) と版をそろえる】
+kyverno = "1.19.2"
