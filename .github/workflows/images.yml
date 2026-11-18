@@ -1,0 +1,151 @@
+# 自分のサービス (services/*/) のイメージを作る: テスト → ビルド → 脆弱性の検査 → GHCR に push → SBOM → keyless 署名。
+# 「このプロジェクトで示したいこと」の 2 (ADR 0007、0008)。
+#
+# 【このファイルの名前と置き場所を変えない】署名の証明書には、署名したワークフロー
+# (https://github.com/<owner>/<repo>/.github/workflows/images.yml@<ref>) が記録される。
+# Kyverno (フェーズ 3 のステップ 5) は、main のこのワークフローが署名したイメージだけを許可する。
+#
+# action はコミット SHA で、ツール (go、trivy、syft、cosign) は mise.lock のチェックサムで固定する (ADR 0005)。
+name: images
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  MISE_VERSION: "2026.11.3"
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # services/ の下で Dockerfile があるディレクトリを、サービスとして列挙する。
+  # テンプレートから作ったサービス (フェーズ 3 のステップ 6) も、置くだけで対象になる
+  discover:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      services: ${{ steps.list.outputs.services }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: list
+        run: |
+          services=$(find services -mindepth 2 -maxdepth 2 -name Dockerfile -printf '%h\n' | xargs -r -n1 basename | sort | jq -R . | jq -cs .)
+          echo "services=${services}" >> "$GITHUB_OUTPUT"
+          echo "対象のサービス: ${services}"
+
+  image:
+    needs: discover
+    if: needs.discover.outputs.services != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.discover.outputs.services) }}
+    permissions:
+      contents: read
+      packages: write # GHCR に push するため
+      id-token: write # keyless 署名で、GitHub の OIDC トークンを Sigstore (Fulcio) に渡すため
+    env:
+      SERVICE: ${{ matrix.service }}
+      # 【フォークからの PR では push と署名をしない】GITHUB_TOKEN に書き込みの権限がなく、OIDC トークンも使えない
+      PUBLISH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          version: ${{ env.MISE_VERSION }}
+
+      - name: go test
+        working-directory: services/${{ matrix.service }}
+        run: go test -race -count=1 ./...
+
+      - name: docker build
+        id: build
+        run: |
+          # 【タグは変わらない値 (コミットの SHA) にする】latest のような付け替わるタグは使わない (Kyverno の方針でも拒否する)
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            tag="pr-${PR_NUMBER}-${GITHUB_SHA::12}"
+          else
+            tag="sha-${GITHUB_SHA::12}"
+          fi
+          image="${REGISTRY}/${SERVICE}:${tag}"
+          # org.opencontainers.image.source: GHCR のパッケージを、このリポジトリに結び付ける
+          docker build \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            -t "${image}" "services/${SERVICE}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      # 修正版のある HIGH / CRITICAL の脆弱性があれば止める (push の前に検査する)
+      - name: trivy image
+        run: trivy image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "${IMAGE}"
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+
+      - name: docker push
+        if: env.PUBLISH == 'true'
+        id: push
+        run: |
+          echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          docker push "${IMAGE}"
+          # 以降は digest で参照する。タグは書き換えられるが、digest は中身そのものを指す
+          ref=$(docker inspect --format '{{index .RepoDigests 0}}' "${IMAGE}")
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          echo "push した: ${ref}"
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: syft (SBOM)
+        if: env.PUBLISH == 'true'
+        run: syft scan "registry:${REF}" -o "spdx-json=sbom.spdx.json"
+        env:
+          REF: ${{ steps.push.outputs.ref }}
+
+      # keyless 署名: 鍵ファイルを作らない。GitHub の OIDC トークンで Fulcio から短命の証明書を受け取り、
+      # 署名を Rekor (公開の透明性ログ) に記録する。cosign v3 の既定 (Sigstore bundle 形式) のまま使う (ADR 0008)
+      - name: cosign sign / attest (SBOM)
+        if: env.PUBLISH == 'true'
+        run: |
+          cosign sign --yes "${REF}"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${REF}"
+        env:
+          REF: ${{ steps.push.outputs.ref }}
+
+      # 自分で検証して、Kyverno が確かめるのと同じ条件 (このワークフロー、GitHub の OIDC) で署名できているかを見る
+      - name: cosign verify
+        if: env.PUBLISH == 'true'
+        run: |
+          identity="${GITHUB_SERVER_URL}/${WORKFLOW_REF}"
+          cosign verify --certificate-identity "${identity}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "${REF}" > /dev/null
+          cosign verify-attestation --type spdxjson --certificate-identity "${identity}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "${REF}" > /dev/null
+          {
+            echo "### ${SERVICE}"
+            echo "- イメージ: \`${REF}\`"
+            echo "- 署名者: \`${identity}\`"
+            echo "- SBOM: SPDX (attestation として付けた)"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          REF: ${{ steps.push.outputs.ref }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+
+      - name: docker logout
+        if: always()
+        run: docker logout ghcr.io || true

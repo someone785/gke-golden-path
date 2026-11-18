@@ -81,6 +81,8 @@ Terraform は 3 つに分けている ([ADR 0004](docs/adr/0004-terraform-split.
 | Terraform を bootstrap・本体・platform に分ける | [0004](docs/adr/0004-terraform-split.md) |
 | ツールはチェックサムとコミット SHA で固定する | [0005](docs/adr/0005-pin-tools-by-checksum-and-sha.md) |
 | SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する | [0006](docs/adr/0006-slo-and-alerting.md) |
+| 自分でビルドしたイメージは GHCR に置く | [0007](docs/adr/0007-image-registry-ghcr.md) |
+| イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](docs/adr/0008-keyless-signing-and-sbom.md) |
 
 ## 再現の手順
 
