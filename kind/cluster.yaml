@@ -1,0 +1,10 @@
+# 手元の kind のクラスタ (フェーズ 3)。scripts/kind-up.sh が使う。
+# 1 ノードだけにする。dev と prod は namespace で分ける (ADR 0009 の予定)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: gke-golden-path
+nodes:
+  - role: control-plane
+    # 【node のイメージは digest で固定する】kind v0.33.0 のリリースノートに書かれた値 (ADR 0005)。
+    # GKE (1.36) と kubectl (mise.toml の 1.36.6) にマイナーの版をそろえる。kind を上げたら、ここも選び直す
+    image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed

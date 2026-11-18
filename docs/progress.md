@@ -55,7 +55,16 @@
   - Go 1.27.4 を mise で入れた (linux-x64 のチェックサムは go.dev の値と一致)
 - **2026-11-18: フェーズ 3 のステップ 2 (CI)** を書いた (`.github/workflows/images.yml`、ADR 0007・0008)。テスト → ビルド → trivy → GHCR に push → Syft で SBOM → Cosign で keyless 署名と attestation → 自分で verify
   - cosign 3.1.4、syft 1.56.0 を mise で入れた (linux-x64 のチェックサムは公式の値と一致)
-  - 次: push して CI を動かす。GHCR のパッケージを public にする (【戻せない】)
+  - 初回の実行 (run 44322508280、約 3 分 24 秒) で成功。`ghcr.io/someone785/greeter@sha256:5d138a12…` を push し、署名・SBOM の attestation・verify まで通った
+  - GHCR のパッケージ `greeter` を public にした (2026-11-18、【戻せない】)。認証なしで pull と `cosign verify` ができた
+  - `cosign tree` で、署名 (`https://sigstore.dev/cosign/sign/v1`) と SBOM (`https://spdx.dev/Document`) が **OCI の referrer** として保存されていることを確かめた (GHCR は referrer に対応している)
+  - identity を PR の ref (`refs/pull/1/merge`) にして verify すると、`no matching CertificateIdentity` で失敗した → Kyverno で main だけを許可できる見込み
+- **2026-11-18: フェーズ 3 のステップ 3 (kind と ArgoCD)** を書いた。`scripts/kind-up.sh` / `kind-down.sh` (冪等)、`kind/cluster.yaml` (node は v1.36.4 を digest で固定)、`kind/root-app.yaml`
+  - ArgoCD の values を `gitops/platform/argocd/values.yaml` に切り出し、Terraform (GKE) とスクリプト (kind) の両方から読む
+  - `gitops/apps/` を `common/` (kind と GKE) と `gke/` (OTel Demo) に分けた。GKE のルートは `directory.recurse` で両方を読む
+  - kind 0.33.0 を mise で入れた (チェックサムは公式の値と一致)
+  - リポジトリを常に public にすることにした (kind の ArgoCD が認証なしで読むため)。公開の前に gitleaks で全履歴 (38 コミット) を検査し、漏れはなかった
+  - 次: ユーザーの端末で kind-up.sh を実行して確かめる → ステップ 4 (dev / prod)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -83,6 +92,7 @@
 | 2026-11-08 | Terraform を bootstrap・本体・platform の 3 つに分ける | [0004](adr/0004-terraform-split.md) |
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
 | 2026-11-08 | ArgoCD は認証なしでリポジトリを読む。クラスタを動かすときは public にする (公開の前に gitleaks で全履歴を検査した)。2026-11-11 時点では、動かしていない間は private に戻している | — |
+| 2026-11-18 | リポジトリは常に public にする (kind をたびたび動かすため。公開の前に gitleaks で全履歴を検査した) | — |
 | 2026-11-18 | 自分でビルドしたイメージは GHCR に置く | [0007](adr/0007-image-registry-ghcr.md) |
 | 2026-11-18 | イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](adr/0008-keyless-signing-and-sbom.md) |
 | 2026-11-13 | SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する。最初の SLO は checkout の注文の成功率 | [0006](adr/0006-slo-and-alerting.md) |

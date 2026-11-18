@@ -1,4 +1,4 @@
-# OpenTelemetry Demo の chart (gitops/apps/otel-demo.yaml) に渡す values。
+# OpenTelemetry Demo の chart (gitops/apps/gke/otel-demo.yaml) に渡す values。
 # 監視の部品は chart に同梱のものを使い、無効にされている部品を有効にするだけにする (CLAUDE.md、ADR 0006)。
 # SLO のルールは、Sloth で生成した values-slo-rules.yaml に分けている。
 prometheus:

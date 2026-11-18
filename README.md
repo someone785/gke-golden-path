@@ -182,6 +182,14 @@ gh repo edit <OWNER>/gke-golden-path --visibility private --accept-visibility-ch
 実測 (2026-11-11) で、動かしている間は**約 21 円 / 時間** (Spot の e2-standard-4 1 台、ディスク、NAT など)。GKE の管理手数料 (約 16 円 / 時間) は無料枠で相殺される前提 (未確認)。内訳は [docs/progress.md の実測の記録](docs/progress.md#実測の記録)。
 消している間は、state のバケットだけが残る。
 
+## 手元 (kind) で動かす
+フェーズ 3 の作業 (自分のサービス、dev/prod、Kyverno) は、GKE を使わず手元の kind で進める。
+```bash
+scripts/kind-up.sh     # kind のクラスタ、ArgoCD、ルートの Application (gitops/apps/common/) を入れる。冪等
+scripts/kind-down.sh   # 消す
+```
+ArgoCD は GKE と同じ chart の版と values を使う (`gitops/platform/argocd/values.yaml`)。kind には OTel Demo を入れない (メモリが足りない)。
+
 ## ディレクトリ構成
 ```
 terraform/
@@ -189,8 +197,14 @@ terraform/
   (本体)              VPC、GKE、Artifact Registry
   platform/           ArgoCD と、ルートの Application (app-of-apps)
 gitops/
-  apps/               ArgoCD の Application (OTel Demo)
-.github/workflows/    CI (検査と terraform plan)
+  apps/common/        kind と GKE の両方に入れる Application
+  apps/gke/           GKE だけに入れる Application (OTel Demo)
+  platform/argocd/    ArgoCD の values (GKE と kind で共通)
+  workloads/          Application に渡す values など
+services/             自分のサービス (Go)
+kind/                 手元の kind のクラスタとルートの Application
+scripts/              SLO のルールの生成、kind の作成・削除
+.github/workflows/    CI (検査と terraform plan、イメージのビルド・検査・SBOM・署名)
 docs/
   demo/               各フェーズのデモの記録とスクリーンショット
   progress.md         進捗・決定事項・落とし穴

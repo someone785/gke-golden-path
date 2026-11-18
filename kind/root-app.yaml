@@ -1,0 +1,17 @@
+# kind のルートの Application (app-of-apps)。argocd-apps の chart に渡す values。scripts/kind-up.sh が使う。
+# GKE のルート (terraform/platform/argocd.tf) との違いは、読む path だけ (kind は gitops/apps/common/ だけ)。
+applications:
+  root:
+    namespace: argocd
+    project: default
+    source:
+      repoURL: https://github.com/someone785/gke-golden-path.git
+      targetRevision: main
+      path: gitops/apps/common
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true

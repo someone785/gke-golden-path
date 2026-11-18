@@ -15,24 +15,15 @@ resource "helm_release" "argocd" {
   # 初回はイメージの取得に時間がかかるので、既定の 300 秒より長く待つ
   timeout = 600
 
-  values = [yamlencode({
-    configs = {
-      params = {
-        # UI は kubectl port-forward で開く。TLS の終端を置かないので、HTTP で配信する
-        "server.insecure" = true
-      }
-    }
-    # SSO は使わない (ログインは初期の admin のパスワード)。使わない部品を減らしてメモリを節約する
-    dex = {
-      enabled = false
-    }
-  })]
+  # kind (scripts/kind-up.sh) と同じ values を使う
+  values = [file("${path.module}/../../gitops/platform/argocd/values.yaml")]
 }
 
 # ---------------------------------------------------------------
 # app-of-apps のルート
 # ---------------------------------------------------------------
-# gitops/apps/ にある Application をすべて ArgoCD に読ませる。これより先は、すべて Git から入る。
+# gitops/apps/ の下 (common/ と gke/) にある Application をすべて ArgoCD に読ませる。これより先は、すべて Git から入る。
+# kind のルート (kind/root-app.yaml) は common/ だけを読む (OTel Demo は kind ではメモリが足りないため gke/ に置いている)。
 # 【finalizers を付けない】付けると、destroy で ArgoCD を先に消したときに Application の削除が止まる。
 # 配下のリソースは、本体の destroy でクラスタごと消える。
 resource "helm_release" "root_app" {
@@ -52,6 +43,10 @@ resource "helm_release" "root_app" {
           repoURL        = var.gitops_repo_url
           targetRevision = var.gitops_revision
           path           = "gitops/apps"
+          # サブディレクトリ (common/、gke/) も読む
+          directory = {
+            recurse = true
+          }
         }
         destination = {
           server    = "https://kubernetes.default.svc"

@@ -1,0 +1,11 @@
+# ArgoCD の chart (argo-cd) に渡す values。GKE と kind で同じものを使う。
+# - GKE: terraform/platform/argocd.tf が file() で読む
+# - kind: scripts/kind-up.sh が helm に渡す
+# 【chart の版は、両方で同じ値にする】terraform/platform/argocd.tf の version と scripts/kind-up.sh の ARGOCD_CHART_VERSION
+configs:
+  params:
+    # UI は kubectl port-forward で開く。TLS の終端を置かないので、HTTP で配信する
+    server.insecure: true
+# SSO は使わない (ログインは初期の admin のパスワード)。使わない部品を減らしてメモリを節約する
+dex:
+  enabled: false
