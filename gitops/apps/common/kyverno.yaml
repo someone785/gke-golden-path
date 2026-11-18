@@ -1,0 +1,39 @@
+# Kyverno 本体 (ADR 0010)。他者が作ったものなので Helm で入れる (CLAUDE.md)。kind と GKE の両方に入る。
+# ポリシーは別の Application (kyverno-policies.yaml) で入れる。
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  annotations:
+    # Kyverno の platform notes が ArgoCD に勧める設定。Kyverno の mutating webhook が書き換えた後の状態と比べる
+    argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
+  # 【finalizers を付けない】terraform/platform/argocd.tf のルートと同じ理由
+spec:
+  project: default
+  source:
+    repoURL: https://kyverno.github.io/kyverno/
+    chart: kyverno
+    # Kyverno v1.19.2 (2026-10-20 公開)。【mise.toml の kyverno (CLI) と版をそろえる】
+    # v1.19.2 には、cosign v3 の既定の署名 (Sigstore bundle、OCI の referrer) を ImageValidatingPolicy で読む処理がある
+    targetRevision: 3.9.2
+    helm:
+      valuesObject:
+        config:
+          # 【ArgoCD で入れるときは false】true だと Helm の post-delete のフックが入り、ArgoCD の同期の状態がおかしくなる
+          # (Kyverno の platform notes)
+          preserve: false
+        # Kyverno が作る webhook に、ArgoCD が管理するものと分かるラベルを付ける (同)
+        webhookLabels:
+          app.kubernetes.io/managed-by: argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # 【CRD が大きい】client-side apply では annotation の上限を超える (OTel Demo と同じ問題)。Kyverno の platform notes も勧めている
+      - ServerSideApply=true

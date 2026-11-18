@@ -1,0 +1,31 @@
+# Kyverno のポリシー (gitops/platform/kyverno-policies/)。kind と GKE の両方に入る (ADR 0010)。
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/someone785/gke-golden-path.git
+    targetRevision: main
+    path: gitops/platform/kyverno-policies
+    directory:
+      # tests/ は kyverno test 用 (Pod の例) なので、クラスタに入れない
+      exclude: "tests/*"
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # 【Kyverno の CRD がまだないうちは、ポリシーを入れられない】kyverno の Application と同時に同期が始まるため。
+      # CRD がないことでの dry-run の失敗を飛ばし、retry で CRD ができるのを待つ
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

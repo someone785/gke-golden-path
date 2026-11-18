@@ -1,0 +1,15 @@
+# 方針を満たす Pod (kyverno-test.yaml で pass になることを確かめる)。イメージは main の CI が署名した本物の digest
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good
+  namespace: greeter-dev
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: greeter
+      image: ghcr.io/someone785/greeter@sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
+      resources:
+        limits:
+          memory: 64Mi

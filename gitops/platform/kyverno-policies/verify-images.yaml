@@ -1,0 +1,46 @@
+# 自分のイメージ (ghcr.io/someone785/*) は、このリポジトリの main の images.yml が keyless で署名し、
+# SBOM (SPDX) の attestation が付いたものだけを許可する。「このプロジェクトで示したいこと」の 4 (ADR 0010)。
+#
+# 【ClusterPolicy の verifyImages ではなく ImageValidatingPolicy を使う】cosign v3 の既定の形式
+# (Sigstore bundle を OCI の referrer として保存。ADR 0008) を読む処理が入っているのは、こちら
+# (Kyverno v1.19.2 のソースの pkg/image/verifiers/ivpol/cosign/verifier.go)。
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-own-images
+spec:
+  validationActions: [Deny]
+  # Kyverno が止まっているときは、Pod の作成を止める (署名を確かめないまま通さない)
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  # このパターンに合うイメージだけを確かめる。ほかのレジストリのイメージは workload-baseline.yaml で断る
+  matchImageReferences:
+    - glob: "ghcr.io/someone785/*"
+  attestors:
+    # 【名前に - を使わない】CEL の式で attestors.<名前> と書くので、github-main は「github 引く main」と読まれる
+    - name: githubMain
+      cosign:
+        keyless:
+          identities:
+            # 【main の images.yml だけ】PR のイメージ (refs/pull/<番号>/merge) は署名があっても通さない (ADR 0008)
+            - subject: "https://github.com/someone785/gke-golden-path/.github/workflows/images.yml@refs/heads/main"
+              issuer: "https://token.actions.githubusercontent.com"
+        ctlog:
+          url: "https://rekor.sigstore.dev"
+  attestations:
+    - name: sbom
+      intoto:
+        # cosign attest --type spdxjson が付ける predicateType
+        type: "https://spdx.dev/Document"
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.githubMain])).all(e, e > 0)
+      message: "イメージに、このリポジトリの main の CI (images.yml) の署名がない"
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors.githubMain])).all(e, e > 0)
+      message: "イメージに、main の CI が署名した SBOM (SPDX) の attestation がない"

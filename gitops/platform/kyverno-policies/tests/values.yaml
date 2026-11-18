@@ -1,0 +1,9 @@
+# kyverno test に渡す、クラスタの代わりの情報。namespace のラベルは ApplicationSet が付けるもの
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Value
+metadata:
+  name: values
+namespaceSelector:
+  - name: greeter-dev
+    labels:
+      gke-golden-path/workload: "true"

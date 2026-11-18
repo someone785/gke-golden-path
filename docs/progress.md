@@ -78,7 +78,13 @@
     - push → images (2 分 45 秒) → deploy-dev が `deploy(dev): greeter sha-de655d591ca9` を main にコミット (GITHUB_TOKEN の `contents: write` で push できた) → ArgoCD が dev だけを `938afbd8…` に入れ替えた。prod は `5d138a12…` のまま
     - `scripts/promote.sh greeter` → cosign verify → PR #1 → ci が通る → マージ → ArgoCD が prod (2 台) を `938afbd8…` に入れ替えた
     - マージ (マニフェストだけの変更) では images が動かなかった (paths の絞り込みが効いた)
-  - 次: ステップ 5 (Kyverno)
+- **2026-11-19: フェーズ 3 のステップ 5 (Kyverno)** を書いた (ADR 0010)
+  - Kyverno v1.19.2 (chart 3.9.2) を ArgoCD で入れる (`gitops/apps/common/kyverno.yaml`)。ポリシーは `gitops/platform/kyverno-policies/`
+  - `verify-own-images` (ImageValidatingPolicy): main の images.yml の keyless 署名と SPDX の attestation。cosign v3 の既定の形式を読めることを、Kyverno のソースと `kyverno apply` (本物のイメージ) で確かめた (ADR 0008 の未確認が片付いた)
+  - `workload-baseline` (ValidatingPolicy): 自分のレジストリだけ、digest、メモリの上限、root の禁止
+  - `kyverno test` で 6 つのテストが通った。ci.yml に `kyverno test` と `kustomize build` を足した
+  - kyverno CLI 1.19.2 を mise で入れた (チェックサムは公式の値と一致)
+  - 次: push して kind で確かめる (Kyverno が入る、greeter が動き続ける、違反した Pod が拒否される)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -107,6 +113,7 @@
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
 | 2026-11-08 | ArgoCD は認証なしでリポジトリを読む。クラスタを動かすときは public にする (公開の前に gitleaks で全履歴を検査した)。2026-11-11 時点では、動かしていない間は private に戻している | — |
 | 2026-11-18 | リポジトリは常に public にする (2026-11-19 に public にした) (kind をたびたび動かすため。公開の前に gitleaks で全履歴を検査した) | — |
+| 2026-11-19 | Kyverno の ImageValidatingPolicy で署名と SBOM を確かめ、ValidatingPolicy で方針を守らせる | [0010](adr/0010-kyverno-image-validating-policy.md) |
 | 2026-11-19 | dev / prod は 1 つのクラスタの namespace で分け、dev は CI が自動で、prod は PR で入れる | [0009](adr/0009-dev-prod-and-promotion.md) |
 | 2026-11-18 | 自分でビルドしたイメージは GHCR に置く | [0007](adr/0007-image-registry-ghcr.md) |
 | 2026-11-18 | イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](adr/0008-keyless-signing-and-sbom.md) |
@@ -196,6 +203,8 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
 - 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
 - 【GITHUB_TOKEN で push したコミットや作った PR では、ほかのワークフローが動かない】deploy-dev のコミットは ci を通らない。昇格の PR はユーザーの権限で作る (ADR 0009)
+- 【Kyverno の CEL で、attestor の名前に `-` を使わない】`attestors.github-main` は引き算として読まれる (ADR 0010)
+- 【`kyverno apply` で namespaceSelector の付いたポリシーを試すときは、namespace のラベルを values のファイル (`kind: Value` の `namespaceSelector`) で渡す】渡さないと、どの Pod も対象にならず 0 件になる
 - 【`gh pr checks` に `--repo` を付けるときは、PR の番号が要る】`gh pr checks 1 --repo ...`
 - 【ArgoCD は約 3 分ごとに Git を見る】CI のコミットから反映まで、最大で数分かかる
 - 【mise の shim は、リポジトリの外では版を決められない】`mise ERROR No version is set for shim`。リポジトリの外で使うときは `$(mise which <ツール>)`

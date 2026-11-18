@@ -56,6 +56,20 @@ jobs:
       - name: SLO rules are up to date
         run: scripts/gen-slo-rules.sh --check
 
+      # Kyverno のポリシーを、クラスタに入れる前に確かめる (ADR 0010)。
+      # 【verify-own-images のテストは、GHCR の本物のイメージの署名を Sigstore で確かめる】ネットワークが要る
+      - name: kyverno test
+        run: kyverno test gitops/platform/kyverno-policies/tests --remove-color
+
+      # 自分のサービスの Kustomize の overlay が、すべて展開できるか
+      - name: kustomize build
+        run: |
+          for dir in gitops/workloads/*/overlays/*/; do
+            echo "::group::${dir}"
+            kustomize build "${dir}" > /dev/null
+            echo "::endgroup::"
+          done
+
       - name: terraform validate
         run: |
           for dir in terraform/bootstrap terraform terraform/platform; do

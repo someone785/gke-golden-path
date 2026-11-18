@@ -42,3 +42,7 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+        # namespace に、Kyverno の方針 (gitops/platform/kyverno-policies/workload-baseline.yaml) の対象であることを示すラベルを付ける
+        managedNamespaceMetadata:
+          labels:
+            gke-golden-path/workload: "true"

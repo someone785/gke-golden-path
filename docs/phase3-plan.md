@@ -22,7 +22,8 @@
 | 0007 | イメージの置き場所 | GHCR (上記) |
 | 0008 | 署名と SBOM | Cosign の keyless 署名 (GitHub Actions の OIDC → Sigstore)。**鍵ファイルを作らない**方針と合う。SBOM は Syft で作り、Cosign で attestation としてイメージに付ける。イメージは digest で参照する |
 | 0009 | dev / prod の分け方 | 費用のため、1 つのクラスタに namespace を 2 つ。Kustomize の overlay (`overlays/dev`、`overlays/prod`)。昇格は、prod の overlay のイメージの digest を書き換える PR |
-| 0010 | テンプレートの作り方 | `templates/service-go/` を雛形にし、`scripts/new-service.sh` でコピーして名前を置き換える (Backstage はフェーズ 4) |
+| 0010 | Kyverno のポリシーの種類 | ImageValidatingPolicy と ValidatingPolicy (CEL) |
+| 0011 | テンプレートの作り方 | `templates/service-go/` を雛形にし、`scripts/new-service.sh` でコピーして名前を置き換える (Backstage はフェーズ 4) |
 
 【未確認】Cosign の keyless 署名を Kyverno で検証するときの設定 (issuer、subject の書き方)、SBOM の attestation の検証の書き方。実装の前に公式のドキュメントで確かめる。
 

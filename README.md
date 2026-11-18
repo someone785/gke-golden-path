@@ -84,6 +84,7 @@ Terraform は 3 つに分けている ([ADR 0004](docs/adr/0004-terraform-split.
 | 自分でビルドしたイメージは GHCR に置く | [0007](docs/adr/0007-image-registry-ghcr.md) |
 | イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](docs/adr/0008-keyless-signing-and-sbom.md) |
 | dev / prod は namespace で分け、dev は CI が自動で、prod は PR で入れる | [0009](docs/adr/0009-dev-prod-and-promotion.md) |
+| Kyverno の ImageValidatingPolicy で署名と SBOM を確かめ、ValidatingPolicy で方針を守らせる | [0010](docs/adr/0010-kyverno-image-validating-policy.md) |
 
 ## 再現の手順
 
@@ -201,6 +202,7 @@ gitops/
   apps/common/        kind と GKE の両方に入れる Application
   apps/gke/           GKE だけに入れる Application (OTel Demo)
   platform/argocd/    ArgoCD の values (GKE と kind で共通)
+  platform/kyverno-policies/  Kyverno のポリシーと、kyverno test のテスト
   workloads/          自分のサービスの Kustomize (base、overlays/dev・prod) と、OTel Demo の values
 services/             自分のサービス (Go)
 kind/                 手元の kind のクラスタとルートの Application

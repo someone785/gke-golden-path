@@ -1,0 +1,55 @@
+# workload-baseline.yaml に違反する Pod (kyverno-test.yaml で fail になることを確かめる)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: other-registry
+  namespace: greeter-dev
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: nginx
+      image: docker.io/library/nginx@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tag-not-digest
+  namespace: greeter-dev
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: greeter
+      image: ghcr.io/someone785/greeter:latest
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-memory-limit
+  namespace: greeter-dev
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: greeter
+      image: ghcr.io/someone785/greeter@sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: root
+  namespace: greeter-dev
+spec:
+  containers:
+    - name: greeter
+      image: ghcr.io/someone785/greeter@sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
+      resources:
+        limits:
+          memory: 64Mi
