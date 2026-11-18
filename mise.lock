@@ -2,6 +2,53 @@
 
 lockfile_version = 3
 
+[[tools.cosign]]
+version = "3.1.4"
+backend = "aqua:sigstore/cosign"
+specifiers = ["3.1.4"]
+
+[tools.cosign."platforms.linux-arm64"]
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
+
+[tools.cosign."platforms.linux-arm64-musl"]
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
+
+[tools.cosign."platforms.linux-x64"]
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
+
+[tools.cosign."platforms.linux-x64-musl"]
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
+
+[tools.cosign."platforms.macos-arm64"]
+checksum = "sha256:9f9b8cd557cf2e5b3df3373a00baa005a86b02391e3e06dd0ce37b3a1533d3a4"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069257"
+provenance = "cosign"
+
+[tools.cosign."platforms.macos-x64"]
+checksum = "sha256:9d1e4abe2b6be279ed0d2ff706fde1ccd738747c834e3e6d44039c238867334f"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069002"
+provenance = "cosign"
+
+[tools.cosign."platforms.windows-x64"]
+checksum = "sha256:cbe953787074611f1334cbf37dc1cf953995bb8c45398eb4fc7bb781d29c1f2a"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-windows-amd64.exe"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660070803"
+provenance = "cosign"
+
 [[tools.gitleaks]]
 version = "8.30.0"
 backend = "aqua:gitleaks/gitleaks"
@@ -269,6 +316,53 @@ checksum = "sha256:49f5fa5b8fce11814f5e81ab6a142c634963a15740a78b8451c9fb5969d93
 checksum_source = "mise-versions"
 url = "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-windows-amd64.exe"
 url_api = "https://api.github.com/repos/slok/sloth/releases/assets/388523832"
+
+[[tools.syft]]
+version = "1.56.0"
+backend = "aqua:anchore/syft"
+specifiers = ["1.56.0"]
+
+[tools.syft."platforms.linux-arm64"]
+checksum = "sha256:ace61b9397ae28189c674ae332d67a8074dafd71e87724dfb8b22412d8253bb5"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477588"
+provenance = "cosign"
+
+[tools.syft."platforms.linux-arm64-musl"]
+checksum = "sha256:ace61b9397ae28189c674ae332d67a8074dafd71e87724dfb8b22412d8253bb5"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477588"
+provenance = "cosign"
+
+[tools.syft."platforms.linux-x64"]
+checksum = "sha256:1c2493cfcf52d3367d6cb25780d9190c111c2219c34c820574c43e8bae15c528"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477601"
+provenance = "cosign"
+
+[tools.syft."platforms.linux-x64-musl"]
+checksum = "sha256:1c2493cfcf52d3367d6cb25780d9190c111c2219c34c820574c43e8bae15c528"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477601"
+provenance = "cosign"
+
+[tools.syft."platforms.macos-arm64"]
+checksum = "sha256:c19b97a8c175ac7bd8105b8c8240ce740bf078333b12cc62ea49002c1b33e6e0"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477605"
+provenance = "cosign"
+
+[tools.syft."platforms.macos-x64"]
+checksum = "sha256:ff37fb20e8d072e193cb659ecb932994ba2add772cbf86909c368fb95a630c50"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477611"
+provenance = "cosign"
+
+[tools.syft."platforms.windows-x64"]
+checksum = "sha256:c4cd2846dc0128e29a947bc6f56e1e5ef01707275b0e58590fbe48105198661d"
+url = "https://github.com/anchore/syft/releases/download/v1.56.0/syft_1.56.0_windows_amd64.zip"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/702477600"
+provenance = "cosign"
 
 [[tools.terraform]]
 version = "1.16.2"

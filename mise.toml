@@ -32,3 +32,6 @@ promtool = "3.14.0"
 # 自分のサービス (services/) とテンプレート (templates/service-go/) のビルドとテストに使う (フェーズ 3)。
 # 【Dockerfile のビルド用のイメージの Go と版をそろえる】
 go = "1.27.4"
+# イメージの SBOM (Syft) と keyless 署名 (Cosign)。CI で使う (ADR 0008)。手元では検証 (cosign verify) に使う
+syft = "1.56.0"
+cosign = "3.1.4"
