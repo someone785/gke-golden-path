@@ -32,4 +32,4 @@
 - 署名の記録は公開の Rekor に残る (リポジトリ名とワークフロー名が公開される)。リポジトリはクラスタを動かす間 public にしているので、許容する。
 - 未確認:
   - Kyverno (1.18 のドキュメント) で、Cosign v3 の既定の署名と SPDX の attestation を keyless で検証する書き方。ドキュメントには Sigstore bundle 用の `SigstoreBundle` の型があるが、例は SLSA の来歴だけだった。フェーズ 3 のステップ 5 で確かめる。通らなければ、署名のオプションか検証の方法を見直す。
-  - GHCR が OCI 1.1 の referrer の API に対応しているか (対応していなければ、Cosign はタグの方式に切り替えて保存するはず)。CI の初回の実行で確かめる。
+  - (2026-11-18 に確認) GHCR に、署名と SBOM の attestation が OCI の referrer として保存された (`cosign tree`)。
