@@ -37,3 +37,5 @@ syft = "1.56.0"
 cosign = "3.1.4"
 # 手元の Kubernetes (フェーズ 3)。node のイメージは scripts/kind-up.sh と kind/cluster.yaml で digest を固定する
 kind = "0.33.0"
+# Kustomize の overlay の確認 (kustomize build) と、イメージの digest の書き換え (kustomize edit set image) に使う (ADR 0009)
+kustomize = "5.8.3"
