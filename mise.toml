@@ -35,3 +35,5 @@ go = "1.27.4"
 # イメージの SBOM (Syft) と keyless 署名 (Cosign)。CI で使う (ADR 0008)。手元では検証 (cosign verify) に使う
 syft = "1.56.0"
 cosign = "3.1.4"
+# 手元の Kubernetes (フェーズ 3)。node のイメージは scripts/kind-up.sh と kind/cluster.yaml で digest を固定する
+kind = "0.33.0"
