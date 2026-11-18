@@ -73,7 +73,12 @@
   - images.yml に deploy-dev (dev の digest を書き換えて main にコミット)。images.yml はサービスのコードが変わったときだけ動くようにした
   - `scripts/promote.sh`: 署名を確かめてから、prod への昇格の PR を作る
   - kustomize 5.8.3 を mise で入れた (チェックサムは公式の値と一致)
-  - 次: push して kind で ApplicationSet を確かめる → greeter を変える PR → dev → 昇格の PR → prod
+  - 2026-11-19: kind で確かめた。流れの 3 が通しで動いた
+    - ApplicationSet の `gitops/workloads/*/overlays/*` で、`greeter-dev` と `greeter-prod` が作られた (複数の階層のワイルドカードは動く)
+    - push → images (2 分 45 秒) → deploy-dev が `deploy(dev): greeter sha-de655d591ca9` を main にコミット (GITHUB_TOKEN の `contents: write` で push できた) → ArgoCD が dev だけを `938afbd8…` に入れ替えた。prod は `5d138a12…` のまま
+    - `scripts/promote.sh greeter` → cosign verify → PR #1 → ci が通る → マージ → ArgoCD が prod (2 台) を `938afbd8…` に入れ替えた
+    - マージ (マニフェストだけの変更) では images が動かなかった (paths の絞り込みが効いた)
+  - 次: ステップ 5 (Kyverno)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -191,6 +196,8 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
 - 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
 - 【GITHUB_TOKEN で push したコミットや作った PR では、ほかのワークフローが動かない】deploy-dev のコミットは ci を通らない。昇格の PR はユーザーの権限で作る (ADR 0009)
+- 【`gh pr checks` に `--repo` を付けるときは、PR の番号が要る】`gh pr checks 1 --repo ...`
+- 【ArgoCD は約 3 分ごとに Git を見る】CI のコミットから反映まで、最大で数分かかる
 - 【mise の shim は、リポジトリの外では版を決められない】`mise ERROR No version is set for shim`。リポジトリの外で使うときは `$(mise which <ツール>)`
 - 【Cosign 3.1.4 では、従来の形式の署名 (`--new-bundle-format=false`) は非推奨】将来は Sigstore bundle 形式だけになる (ADR 0008)
 - 【GHCR のパッケージは、一度 public にすると private に戻せない】(ADR 0007)

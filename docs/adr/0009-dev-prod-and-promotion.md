@@ -35,6 +35,7 @@
 - 【deploy-dev のコミット (GITHUB_TOKEN) では、ワークフローが動かない】繰り返しにならない代わりに、そのコミットは ci の検査を通らない (変えるのは digest だけ)。
 - 【images.yml は、サービスのコードかワークフロー自体が変わったときだけ動く】マニフェストだけの変更 (昇格の PR など) でイメージを作り直すと、中身が同じでも digest が変わり、dev が無駄に入れ替わるため。
 - 【1 つのクラスタなので、dev と prod は完全には分かれていない】ノードやクラスタ全体の障害は両方に及ぶ。学習用として許容する。
-- 未確認:
-  - ApplicationSet の git の generator で、複数の階層のワイルドカード (`gitops/workloads/*/overlays/*`) が動くか (ドキュメントに例がない)。kind で確かめる。
-  - deploy-dev のジョブが、`contents: write` で main に push できるか (リポジトリの Actions の設定による)。`packages: write` は同じ設定で使えた。
+- 2026-11-19 に kind で確かめたこと:
+  - ApplicationSet の git の generator で、複数の階層のワイルドカード (`gitops/workloads/*/overlays/*`) は動いた (ドキュメントには例がない)。
+  - deploy-dev のジョブは、`contents: write` で main に push できた。
+  - 昇格の PR (#1) では ci が動き、マージしても images は動かなかった。
