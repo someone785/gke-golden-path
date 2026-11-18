@@ -203,6 +203,7 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
 - 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
 - 【GITHUB_TOKEN で push したコミットや作った PR では、ほかのワークフローが動かない】deploy-dev のコミットは ci を通らない。昇格の PR はユーザーの権限で作る (ADR 0009)
+- 【pre-commit の terraform_trivy は、`--all-files` のときだけ Kubernetes の YAML も検査する】手元で `--files` に YAML だけを渡すと「対象なし」で飛ばされ、CI (`--all-files`) で初めて落ちた (2026-11-19、kyverno のテスト用の Pod)。手元でも `pre-commit run --all-files` で確かめる
 - 【Kyverno の CEL で、attestor の名前に `-` を使わない】`attestors.github-main` は引き算として読まれる (ADR 0010)
 - 【`kyverno apply` で namespaceSelector の付いたポリシーを試すときは、namespace のラベルを values のファイル (`kind: Value` の `namespaceSelector`) で渡す】渡さないと、どの Pod も対象にならず 0 件になる
 - 【`gh pr checks` に `--repo` を付けるときは、PR の番号が要る】`gh pr checks 1 --repo ...`

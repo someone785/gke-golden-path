@@ -10,6 +10,11 @@ spec:
   containers:
     - name: nginx
       image: docker.io/library/nginx@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
       resources:
         limits:
           memory: 64Mi
@@ -25,6 +30,11 @@ spec:
   containers:
     - name: greeter
       image: ghcr.io/someone785/greeter:latest
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
       resources:
         limits:
           memory: 64Mi
@@ -40,6 +50,11 @@ spec:
   containers:
     - name: greeter
       image: ghcr.io/someone785/greeter@sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
 ---
 apiVersion: v1
 kind: Pod
@@ -47,9 +62,17 @@ metadata:
   name: root
   namespace: greeter-dev
 spec:
+  # 【securityContext を省いて違反させない】省くと trivy (KSV-0118) にも引っかかる。明示的に root を許して違反させる
+  securityContext:
+    runAsNonRoot: false
   containers:
     - name: greeter
       image: ghcr.io/someone785/greeter@sha256:938afbd8c2632aa99ee4acf7dd25086bb56644f3e4921a07f6dd09ae993c0d41
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
       resources:
         limits:
           memory: 64Mi
