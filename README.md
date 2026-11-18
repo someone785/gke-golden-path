@@ -83,6 +83,7 @@ Terraform は 3 つに分けている ([ADR 0004](docs/adr/0004-terraform-split.
 | SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する | [0006](docs/adr/0006-slo-and-alerting.md) |
 | 自分でビルドしたイメージは GHCR に置く | [0007](docs/adr/0007-image-registry-ghcr.md) |
 | イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](docs/adr/0008-keyless-signing-and-sbom.md) |
+| dev / prod は namespace で分け、dev は CI が自動で、prod は PR で入れる | [0009](docs/adr/0009-dev-prod-and-promotion.md) |
 
 ## 再現の手順
 
@@ -200,10 +201,10 @@ gitops/
   apps/common/        kind と GKE の両方に入れる Application
   apps/gke/           GKE だけに入れる Application (OTel Demo)
   platform/argocd/    ArgoCD の values (GKE と kind で共通)
-  workloads/          Application に渡す values など
+  workloads/          自分のサービスの Kustomize (base、overlays/dev・prod) と、OTel Demo の values
 services/             自分のサービス (Go)
 kind/                 手元の kind のクラスタとルートの Application
-scripts/              SLO のルールの生成、kind の作成・削除
+scripts/              SLO のルールの生成、kind の作成・削除、prod への昇格 (promote.sh)
 .github/workflows/    CI (検査と terraform plan、イメージのビルド・検査・SBOM・署名)
 docs/
   demo/               各フェーズのデモの記録とスクリーンショット

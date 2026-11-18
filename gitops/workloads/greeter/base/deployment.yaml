@@ -1,0 +1,58 @@
+# greeter (services/greeter) の Deployment。dev / prod で共通の部分 (ADR 0009)。
+# 環境ごとの差分 (namespace、イメージの digest、台数) は overlays/ に書く。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeter
+  labels:
+    app.kubernetes.io/name: greeter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: greeter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: greeter
+    spec:
+      # API のトークンは使わないので、Pod に入れない
+      automountServiceAccountToken: false
+      securityContext:
+        # イメージは nonroot (UID 65532) で作っている (services/greeter/Dockerfile)。root で動かそうとしたら起動させない
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: greeter
+          # 【タグではなく digest で参照する】overlays/ の images で、digest に置き換える (ADR 0007)
+          image: ghcr.io/someone785/greeter
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            # 実測はまだ (未確認)。小さな API なので小さめにし、動かしてから見直す
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          # 【トレースの送り先 (OTEL_EXPORTER_OTLP_ENDPOINT) はまだ設定しない】kind には OTel Collector がない。
+          # GKE で OTel Demo の Collector に送る設定は、フェーズ 3 のステップ 7 (SLO) で足す

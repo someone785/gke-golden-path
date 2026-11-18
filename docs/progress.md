@@ -64,7 +64,16 @@
   - `gitops/apps/` を `common/` (kind と GKE) と `gke/` (OTel Demo) に分けた。GKE のルートは `directory.recurse` で両方を読む
   - kind 0.33.0 を mise で入れた (チェックサムは公式の値と一致)
   - リポジトリを常に public にすることにした (kind の ArgoCD が認証なしで読むため)。公開の前に gitleaks で全履歴 (38 コミット) を検査し、漏れはなかった
-  - 次: ユーザーの端末で kind-up.sh を実行して確かめる → ステップ 4 (dev / prod)
+  - 2026-11-19: ユーザーの端末で `kind-up.sh` を実行し、ルートが Synced / Healthy になった (common/ が空でも Synced)。2 回目の実行ではクラスタを作らず、helm が REVISION 2 になるだけだった (冪等)
+  - リポジトリを public にした (2026-11-19)
+  - 【`git mv` で移動をステージしたせいで、移動が別のコミット (`abedc20 chore(tools): add kind`) に入った】push 済みで実害はないので、そのままにした。以後、Claude はステージする操作をしない
+- **2026-11-19: フェーズ 3 のステップ 4 (dev / prod)** を書いた (ADR 0009)
+  - `gitops/workloads/greeter/` に base と overlays/dev・prod。namespace は `greeter-dev` / `greeter-prod`、prod は 2 台
+  - ApplicationSet (`gitops/apps/common/workloads.yaml`) で、`gitops/workloads/*/overlays/*` から Application を作る
+  - images.yml に deploy-dev (dev の digest を書き換えて main にコミット)。images.yml はサービスのコードが変わったときだけ動くようにした
+  - `scripts/promote.sh`: 署名を確かめてから、prod への昇格の PR を作る
+  - kustomize 5.8.3 を mise で入れた (チェックサムは公式の値と一致)
+  - 次: push して kind で ApplicationSet を確かめる → greeter を変える PR → dev → 昇格の PR → prod
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。
@@ -92,7 +101,8 @@
 | 2026-11-08 | Terraform を bootstrap・本体・platform の 3 つに分ける | [0004](adr/0004-terraform-split.md) |
 | 2026-11-08 | ツールは、タグではなくチェックサム (`mise.lock`) とコミット SHA で固定する | [0005](adr/0005-pin-tools-by-checksum-and-sha.md) |
 | 2026-11-08 | ArgoCD は認証なしでリポジトリを読む。クラスタを動かすときは public にする (公開の前に gitleaks で全履歴を検査した)。2026-11-11 時点では、動かしていない間は private に戻している | — |
-| 2026-11-18 | リポジトリは常に public にする (kind をたびたび動かすため。公開の前に gitleaks で全履歴を検査した) | — |
+| 2026-11-18 | リポジトリは常に public にする (2026-11-19 に public にした) (kind をたびたび動かすため。公開の前に gitleaks で全履歴を検査した) | — |
+| 2026-11-19 | dev / prod は 1 つのクラスタの namespace で分け、dev は CI が自動で、prod は PR で入れる | [0009](adr/0009-dev-prod-and-promotion.md) |
 | 2026-11-18 | 自分でビルドしたイメージは GHCR に置く | [0007](adr/0007-image-registry-ghcr.md) |
 | 2026-11-18 | イメージは Cosign で keyless 署名し、SBOM は Syft で作って attestation として付ける | [0008](adr/0008-keyless-signing-and-sbom.md) |
 | 2026-11-13 | SLO は Sloth の CLI で生成し、同梱の Prometheus と Alertmanager で評価・通知する。最初の SLO は checkout の注文の成功率 | [0006](adr/0006-slo-and-alerting.md) |
@@ -180,6 +190,8 @@ terraform show -no-color import.tfplan | grep -E '^  # |^Plan:' > ../../bootstra
 - 【クラスタを作り直すと、kubeconfig の接続先が古いまま】`gcloud container clusters get-credentials` をやり直す。やらないと kubectl が古い IP にタイムアウトする
 - 【OTel Demo の values では Prometheus の configmapReload が無効】ルールを変えても読み直されない → 有効にした (ADR 0006)
 - 【SLO の SLI は、一度もエラーが起きていないと「空」になる】エラーの指標 (status_code=ERROR の系列) がまだ存在しないため。一度起きれば 0 になる。ダッシュボードでは No data に見える
+- 【GITHUB_TOKEN で push したコミットや作った PR では、ほかのワークフローが動かない】deploy-dev のコミットは ci を通らない。昇格の PR はユーザーの権限で作る (ADR 0009)
+- 【mise の shim は、リポジトリの外では版を決められない】`mise ERROR No version is set for shim`。リポジトリの外で使うときは `$(mise which <ツール>)`
 - 【Cosign 3.1.4 では、従来の形式の署名 (`--new-bundle-format=false`) は非推奨】将来は Sigstore bundle 形式だけになる (ADR 0008)
 - 【GHCR のパッケージは、一度 public にすると private に戻せない】(ADR 0007)
 - 【otelhttp で mux 全体を包むと、span の名前が実際の URL になる】名前を決めるのが経路の振り分けより前のため。存在しないパスのたびに名前が増え、span_metrics の系列が膨らむ → 経路ごとに包む (`services/greeter/handler.go`)

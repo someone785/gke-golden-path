@@ -1,0 +1,44 @@
+# 自分のサービスを dev / prod に入れる ApplicationSet (ADR 0009)。
+# gitops/workloads/<サービス>/overlays/<環境>/ というディレクトリがあれば、Application <サービス>-<環境> を作り、
+# namespace <サービス>-<環境> に入れる。テンプレートから作ったサービス (フェーズ 3 のステップ 6) も、ディレクトリを置くだけで入る。
+#
+# 【otel-demo は対象にならない】gitops/workloads/otel-demo/ には overlays/ がない (Helm の values だけ。gitops/apps/gke/)。
+# 【複数の階層のワイルドカード (*/overlays/*) はドキュメントに例がない】path.Match で階層ごとに照合されるので動くはず。kind で確かめる
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads
+  namespace: argocd
+spec:
+  goTemplate: true
+  # 存在しない変数を参照したらエラーにする (空の名前で Application が作られるのを防ぐ)
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/someone785/gke-golden-path.git
+        revision: main
+        directories:
+          - path: gitops/workloads/*/overlays/*
+  template:
+    metadata:
+      # 例: gitops/workloads/greeter/overlays/dev → greeter-dev
+      name: '{{ index .path.segments 2 }}-{{ .path.basename }}'
+      labels:
+        app.kubernetes.io/name: '{{ index .path.segments 2 }}'
+        app.kubernetes.io/environment: '{{ .path.basename }}'
+      # 【finalizers を付けない】terraform/platform/argocd.tf のルートと同じ理由
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/someone785/gke-golden-path.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ index .path.segments 2 }}-{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

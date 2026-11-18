@@ -1,0 +1,14 @@
+# greeter の dev。main にマージされると、CI (.github/workflows/images.yml の deploy-dev) が
+# images の digest を新しいイメージに書き換えてコミットする (ADR 0009)。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: greeter-dev
+resources:
+- ../../base
+labels:
+- pairs:
+    app.kubernetes.io/environment: dev
+# 【手で書き換えない】CI が `kustomize edit set image` で書き換える
+images:
+- digest: sha256:5d138a12216ad2ca310f7c67e377d583769e5f66e93069108dda1bea51c97c22
+  name: ghcr.io/someone785/greeter

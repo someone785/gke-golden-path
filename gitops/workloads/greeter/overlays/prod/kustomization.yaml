@@ -1,0 +1,17 @@
+# greeter の prod。dev で確かめた digest を、昇格の PR (scripts/promote.sh) で持ってくる (ADR 0009)。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: greeter-prod
+resources:
+- ../../base
+labels:
+- pairs:
+    app.kubernetes.io/environment: prod
+# prod は 2 台にして、1 台が止まっても応答できるようにする
+replicas:
+- count: 2
+  name: greeter
+# 【手で書き換えない】scripts/promote.sh が dev の digest をコピーする
+images:
+- digest: sha256:5d138a12216ad2ca310f7c67e377d583769e5f66e93069108dda1bea51c97c22
+  name: ghcr.io/someone785/greeter

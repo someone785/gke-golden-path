@@ -8,10 +8,19 @@
 # action はコミット SHA で、ツール (go、trivy、syft、cosign) は mise.lock のチェックサムで固定する (ADR 0005)。
 name: images
 
+# 【サービスのコードかこのワークフローが変わったときだけ動かす】マニフェストだけの変更 (prod への昇格の PR など) で
+# イメージを作り直すと、中身が同じでも digest が変わり (ラベルにコミットが入るため)、dev が無駄に入れ替わる。
+# 全ディレクトリの検査は ci.yml が毎回行う (CLAUDE.md)
 on:
   pull_request:
+    paths:
+      - "services/**"
+      - ".github/workflows/images.yml"
   push:
     branches: [main]
+    paths:
+      - "services/**"
+      - ".github/workflows/images.yml"
   workflow_dispatch:
 
 permissions: {}
@@ -149,3 +158,59 @@ jobs:
       - name: docker logout
         if: always()
         run: docker logout ghcr.io || true
+
+  # main で作ったイメージを dev に入れる: gitops/workloads/<サービス>/overlays/dev の digest を書き換えて main にコミットする。
+  # ArgoCD がそのコミットを見て dev に入れる (ADR 0009)。prod へは scripts/promote.sh の PR で昇格する。
+  #
+  # 【GITHUB_TOKEN で push したコミットでは、ワークフローは動かない】(GitHub の仕様) このジョブのコミットで、
+  # images や ci がもう一度動いて繰り返しになることはない。その代わり、このコミットは ci の検査を通らない (書き換えるのは digest だけ)
+  deploy-dev:
+    needs: [discover, image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # overlays/dev の変更を main に push するため
+    # 2 つの push が続けて来たときに、書き換えのコミットが競合しないように 1 つずつ動かす
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # push するので、このジョブだけ認証情報を残す
+          persist-credentials: true
+          # 【浅い clone のままでは git pull --rebase が失敗することがある】履歴を全部取る
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          version: ${{ env.MISE_VERSION }}
+
+      - name: overlays/dev の digest を書き換える
+        run: |
+          tag="sha-${GITHUB_SHA::12}"
+          changed=()
+          for svc in $(jq -r '.[]' <<<"${SERVICES}"); do
+            dir="gitops/workloads/${svc}/overlays/dev"
+            if [[ ! -f "${dir}/kustomization.yaml" ]]; then
+              echo "${svc}: ${dir} がないので、dev には入れない"
+              continue
+            fi
+            # image ジョブが push したイメージの digest を、レジストリから取り直す (public なので認証は要らない)
+            digest=$(docker buildx imagetools inspect "${REGISTRY}/${svc}:${tag}" --format '{{json .Manifest.Digest}}' | jq -r .)
+            (cd "${dir}" && kustomize edit set image "${REGISTRY}/${svc}@${digest}")
+            echo "${svc}: dev を ${digest} にする"
+            changed+=("${svc}")
+          done
+          if git diff --quiet; then
+            echo "変更なし"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy(dev): ${changed[*]} ${tag}"
+          # 【書き換えの間に main が進んでいたら、rebase してから push する】
+          git pull --rebase origin main
+          git push origin HEAD:main
+        env:
+          SERVICES: ${{ needs.discover.outputs.services }}
