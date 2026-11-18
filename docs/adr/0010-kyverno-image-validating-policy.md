@@ -37,7 +37,11 @@
 - 【attestor の名前に `-` を使わない】CEL の式で `attestors.<名前>` と書くので、`github-main` は「`attestors.github` 引く `main`」と読まれ、ポリシーのコンパイルに失敗する。
 - 【`failurePolicy: Fail`】Kyverno が止まっていると、`ghcr.io/someone785/*` の Pod を作れない。署名を確かめないまま通すよりよい。
 - 【OTel Demo などの他者のイメージは対象外】`workload-baseline` は workload のラベルの namespace だけ、`verify-own-images` は自分のレジストリのイメージだけを見る (CLAUDE.md: 署名の対象は自分でビルドしたイメージだけ)。
+- 2026-11-19 に kind で確かめたこと (`kubectl apply --dry-run=server`):
+  - 正しい Pod は通る。方針に違反する 4 種類の Pod は拒否される。
+  - 署名のない自分のイメージ (GHCR の署名そのものの digest を代わりに使った) は「main の CI の署名がない」で拒否される。
+  - すでにある namespace (`greeter-dev`、`greeter-prod`) にも、ApplicationSet の `managedNamespaceMetadata` のラベルが後から付いた。
+  - 【タグで参照した Pod は、ImageValidatingPolicy の digest への変換 (mutateDigest) で先に止まる】`:latest` が存在しないので「digest を解決できない」で拒否された。
+  - 【初回の署名の検証が、既定の 10 秒で時間切れになった】`webhookConfiguration.timeoutSeconds` を上限の 30 秒にした。
 - 未確認:
-  - クラスタの Kyverno で、`kyverno test` と同じ結果になるか (kind で確かめる)。
-  - すでにある namespace (`greeter-dev`、`greeter-prod`) に、ApplicationSet の `managedNamespaceMetadata` のラベルが後から付くか。
   - Deployment に対する拒否が、Deployment を作るときに出るか (Kyverno の autogen)、ReplicaSet が Pod を作るときに出るか。

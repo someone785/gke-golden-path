@@ -84,7 +84,9 @@
   - `workload-baseline` (ValidatingPolicy): 自分のレジストリだけ、digest、メモリの上限、root の禁止
   - `kyverno test` で 6 つのテストが通った。ci.yml に `kyverno test` と `kustomize build` を足した
   - kyverno CLI 1.19.2 を mise で入れた (チェックサムは公式の値と一致)
-  - 次: push して kind で確かめる (Kyverno が入る、greeter が動き続ける、違反した Pod が拒否される)
+  - 2026-11-19: kind で確かめた。Kyverno と 2 つのポリシーが入り (READY)、既存の namespace にもラベルが付いた。`--dry-run=server` で、正しい Pod は通り、違反した 4 種類と署名のない自分のイメージは拒否された (流れの 4 が動いた)
+  - 初回の署名の検証が既定の 10 秒で時間切れになったので、上限の 30 秒にした
+  - 次: ステップ 6 (テンプレート化)
 
 ## 期限 (重要)
 - 無料クレジットの期限は **2027-01-27**。課金アカウントは有料に切り替え済みなので、期限を過ぎると**実費で課金される**。

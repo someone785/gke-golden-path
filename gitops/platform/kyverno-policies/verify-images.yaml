@@ -12,6 +12,10 @@ spec:
   validationActions: [Deny]
   # Kyverno が止まっているときは、Pod の作成を止める (署名を確かめないまま通さない)
   failurePolicy: Fail
+  # 【署名の検証は、初回に 10 秒 (既定) を超えることがある】Sigstore の信頼の起点 (TUF)、Rekor、GHCR からの取得が重なるため。
+  # kind で、作ったばかりのクラスタの最初の検証が `context deadline exceeded` で失敗し、2 回目は通った (2026-11-19)。上限の 30 秒にする
+  webhookConfiguration:
+    timeoutSeconds: 30
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
